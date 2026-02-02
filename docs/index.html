@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniFaucet - Deployment Guide</title>
+    <meta name="description" content="Complete deployment guide for MiniFaucet - Deploy on Railway, Vercel, and MongoDB Atlas">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚰</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- GitHub Markdown CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-dark.min.css">
+    
+    <!-- Highlight.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #238636;
+            --accent-purple: #8957e5;
+            --accent-orange: #d29922;
+            --border-color: #30363d;
+            --shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 5px;
+            border: 2px solid var(--bg-primary);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        /* Firefox scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--bg-tertiary) var(--bg-primary);
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        
+        .logo:hover {
+            color: var(--accent-primary);
+        }
+        
+        .logo-img {
+            height: 32px;
+            width: auto;
+        }
+        
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .header-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        
+        .header-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .header-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .badge:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        .badge-icon {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* Layout */
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 100px);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.25rem 1rem;
+            position: sticky;
+            top: 57px;
+            height: calc(100vh - 57px);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding-left: 0.75rem;
+        }
+        
+        .nav-list {
+            list-style: none;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.15s ease;
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .nav-link.active {
+            color: var(--accent-primary);
+            border-left: 2px solid var(--accent-primary);
+        }
+        
+        .nav-icon {
+            font-size: 1rem;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem 3rem;
+            min-width: 0;
+        }
+        
+        /* Markdown Styling Overrides */
+        .markdown-body {
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .markdown-body h1,
+        .markdown-body h2,
+        .markdown-body h3 {
+            border-bottom-color: var(--border-color);
+            margin-top: 2rem;
+        }
+        
+        .markdown-body h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border-bottom: none;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .markdown-body h2 {
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .markdown-body h3 {
+            font-size: 1.25rem;
+            border-bottom: none;
+        }
+        
+        .markdown-body a {
+            color: var(--accent-primary);
+        }
+        
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+        
+        .markdown-body code {
+            background: var(--bg-tertiary);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875em;
+        }
+        
+        .markdown-body pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        
+        .markdown-body pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+        }
+        
+        .markdown-body table th,
+        .markdown-body table td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+        
+        .markdown-body table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+        
+        .markdown-body table tr:nth-child(even) {
+            background: var(--bg-secondary);
+        }
+        
+        .markdown-body blockquote {
+            border-left: 4px solid var(--accent-primary);
+            background: var(--bg-secondary);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .markdown-body hr {
+            border-color: var(--border-color);
+            margin: 2rem 0;
+        }
+        
+        .markdown-body details {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+        
+        .markdown-body details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+        
+        .markdown-body details summary:hover {
+            text-decoration: underline;
+        }
+        
+        .markdown-body details[open] summary {
+            margin-bottom: 1rem;
+        }
+        
+        /* Special Boxes */
+        .credit-box {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 2px solid var(--accent-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .credit-box::before {
+            content: '💰';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 100px;
+            opacity: 0.1;
+        }
+        
+        .credit-box h3 {
+            color: var(--accent-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .credit-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--accent-secondary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+        }
+        
+        .credit-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(35, 134, 54, 0.4);
+        }
+        
+        /* Checklist */
+        .markdown-body ul.contains-task-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .markdown-body li.task-list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .markdown-body li.task-list-item input {
+            margin-top: 0.25rem;
+            accent-color: var(--accent-primary);
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Progress indicator */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple));
+            z-index: 1000;
+            transition: width 0.1s ease;
+        }
+        
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 48px;
+            height: 48px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            transform: translateY(-3px);
+            background: var(--accent-purple);
+        }
+        
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+        
+        .hamburger-line {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger-line:not(:last-child) {
+            margin-bottom: 5px;
+        }
+        
+        .hamburger.active .hamburger-line:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+        
+        .hamburger.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger.active .hamburger-line:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+        
+        /* Mobile Menu Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Mobile Menu Drawer */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 1rem;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+        }
+        
+        .mobile-menu.active {
+            right: 0;
+        }
+        
+        .mobile-menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .mobile-menu-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .mobile-menu-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s ease;
+        }
+        
+        .mobile-menu-close:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .mobile-nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .mobile-nav-title {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            padding-left: 0.5rem;
+        }
+        
+        .mobile-nav-list {
+            list-style: none;
+        }
+        
+        .mobile-nav-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.625rem 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.15s ease;
+        }
+        
+        .mobile-nav-link:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .mobile-nav-icon {
+            font-size: 1rem;
+            width: 1.25rem;
+            text-align: center;
+        }
+        
+        .mobile-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .mobile-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        
+        .mobile-badge:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        .mobile-badge-icon {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.625rem 1rem;
+            }
+            
+            .header-content {
+                gap: 0.75rem;
+            }
+            
+            .logo {
+                font-size: 1rem;
+            }
+            
+            .logo-img {
+                height: 28px;
+            }
+            
+            .header-nav {
+                display: none;
+            }
+            
+            .hamburger {
+                display: flex;
+            }
+            
+            .mobile-overlay,
+            .mobile-menu {
+                display: block;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .markdown-body h1 {
+                font-size: 1.75rem;
+            }
+            
+            .markdown-body h2 {
+                font-size: 1.375rem;
+            }
+            
+            .markdown-body pre {
+                font-size: 0.8rem;
+            }
+            
+            .footer {
+                padding: 1.5rem 1rem;
+            }
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .logo-img {
+                height: 24px;
+            }
+            
+            .logo span {
+                font-size: 0.9375rem;
+            }
+            
+            .main-content {
+                padding: 0.75rem;
+            }
+            
+            .markdown-body h1 {
+                font-size: 1.5rem;
+            }
+            
+            .markdown-body h2 {
+                font-size: 1.25rem;
+            }
+            
+            .markdown-body table {
+                font-size: 0.8125rem;
+            }
+            
+            .markdown-body table th,
+            .markdown-body table td {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            .sidebar,
+            .header,
+            .footer,
+            .back-to-top,
+            .progress-bar {
+                display: none !important;
+            }
+            
+            .main-content {
+                padding: 0;
+            }
+            
+            .markdown-body {
+                color: black;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <img src="minifaucet_logo.png" alt="MiniFaucet" class="logo-img">
+                <span>MiniFaucet</span>
+            </a>
+            <nav class="header-nav">
+                <a href="#introduction" class="header-link">Docs</a>
+                <a href="#support" class="header-link">Support</a>
+                <div class="header-badges">
+                    <a href="https://railway.com?referralCode=MNiSD5" target="_blank" class="badge">
+                        <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13.13 22.19L11.5 18.36C13.07 17.78 14.54 17 15.9 16.09L13.13 22.19M5.64 12.5L1.81 10.87L7.91 8.1C7 9.46 6.22 10.93 5.64 12.5M21.61 2.39C21.61 2.39 16.66 .269 11 5.93C8.81 8.12 7.5 10.53 6.65 12.64C6.37 13.39 6.56 14.21 7.11 14.77L9.24 16.89C9.79 17.45 10.61 17.63 11.36 17.35C13.5 16.53 15.88 15.19 18.07 13C23.73 7.34 21.61 2.39 21.61 2.39M14.54 9.46C13.76 8.68 13.76 7.41 14.54 6.63S16.59 5.85 17.37 6.63C18.14 7.41 18.15 8.68 17.37 9.46C16.59 10.24 15.32 10.24 14.54 9.46M8.88 16.53L7.47 15.12L8.88 16.53Z"/>
+                        </svg>
+                        Railway
+                    </a>
+                    <a href="https://vercel.com" target="_blank" class="badge">
+                        <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M24 22.525H0l12-21.05 12 21.05z"/>
+                        </svg>
+                        Vercel
+                    </a>
+                    <a href="https://mongodb.com/atlas" target="_blank" class="badge">
+                        <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z"/>
+                        </svg>
+                        MongoDB
+                    </a>
+                </div>
+            </nav>
+            <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+    </header>
+    
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+    
+    <!-- Mobile Menu Drawer -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <span class="mobile-menu-title">Menu</span>
+            <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">×</button>
+        </div>
+        
+        <div class="mobile-nav-section">
+            <div class="mobile-nav-title">Navigation</div>
+            <ul class="mobile-nav-list">
+                <li class="mobile-nav-item"><a href="#introduction" class="mobile-nav-link"><span class="mobile-nav-icon">🎯</span>Introduction</a></li>
+                <li class="mobile-nav-item"><a href="#prerequisites" class="mobile-nav-link"><span class="mobile-nav-icon">✅</span>Prerequisites</a></li>
+                <li class="mobile-nav-item"><a href="#quick-start" class="mobile-nav-link"><span class="mobile-nav-icon">⚡</span>Quick Start</a></li>
+                <li class="mobile-nav-item"><a href="#step-1-mongodb-atlas-setup" class="mobile-nav-link"><span class="mobile-nav-icon">🍃</span>MongoDB Setup</a></li>
+                <li class="mobile-nav-item"><a href="#step-2-railway-backend-deployment" class="mobile-nav-link"><span class="mobile-nav-icon">🚂</span>Railway Deploy</a></li>
+                <li class="mobile-nav-item"><a href="#step-3-vercel-frontend-deployment" class="mobile-nav-link"><span class="mobile-nav-icon">▲</span>Vercel Deploy</a></li>
+                <li class="mobile-nav-item"><a href="#step-4-admin-setup" class="mobile-nav-link"><span class="mobile-nav-icon">👤</span>Admin Setup</a></li>
+                <li class="mobile-nav-item"><a href="#step-5-telegram-bot-setup" class="mobile-nav-link"><span class="mobile-nav-icon">🤖</span>Telegram Bot</a></li>
+                <li class="mobile-nav-item"><a href="#step-6-faucetpay-integration" class="mobile-nav-link"><span class="mobile-nav-icon">💰</span>FaucetPay</a></li>
+                <li class="mobile-nav-item"><a href="#step-7-cloudflare-turnstile-setup" class="mobile-nav-link"><span class="mobile-nav-icon">🛡️</span>Turnstile</a></li>
+                <li class="mobile-nav-item"><a href="#troubleshooting" class="mobile-nav-link"><span class="mobile-nav-icon">🔧</span>Troubleshooting</a></li>
+                <li class="mobile-nav-item"><a href="#faq" class="mobile-nav-link"><span class="mobile-nav-icon">❓</span>FAQ</a></li>
+                <li class="mobile-nav-item"><a href="#support" class="mobile-nav-link"><span class="mobile-nav-icon">💬</span>Support</a></li>
+            </ul>
+        </div>
+        
+        <div class="mobile-nav-section">
+            <div class="mobile-nav-title">Deploy On</div>
+            <div class="mobile-badges">
+                <a href="https://railway.com?referralCode=MNiSD5" target="_blank" class="mobile-badge">
+                    <svg class="mobile-badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13.13 22.19L11.5 18.36C13.07 17.78 14.54 17 15.9 16.09L13.13 22.19M5.64 12.5L1.81 10.87L7.91 8.1C7 9.46 6.22 10.93 5.64 12.5M21.61 2.39C21.61 2.39 16.66 .269 11 5.93C8.81 8.12 7.5 10.53 6.65 12.64C6.37 13.39 6.56 14.21 7.11 14.77L9.24 16.89C9.79 17.45 10.61 17.63 11.36 17.35C13.5 16.53 15.88 15.19 18.07 13C23.73 7.34 21.61 2.39 21.61 2.39M14.54 9.46C13.76 8.68 13.76 7.41 14.54 6.63S16.59 5.85 17.37 6.63C18.14 7.41 18.15 8.68 17.37 9.46C16.59 10.24 15.32 10.24 14.54 9.46M8.88 16.53L7.47 15.12L8.88 16.53Z"/>
+                    </svg>
+                    Railway — Get $20 Credit
+                </a>
+                <a href="https://vercel.com" target="_blank" class="mobile-badge">
+                    <svg class="mobile-badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 22.525H0l12-21.05 12 21.05z"/>
+                    </svg>
+                    Vercel
+                </a>
+                <a href="https://mongodb.com/atlas" target="_blank" class="mobile-badge">
+                    <svg class="mobile-badge-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z"/>
+                    </svg>
+                    MongoDB Atlas
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-title">Documentation</div>
+            <nav>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#introduction" class="nav-link">
+                            <span class="nav-icon">🎯</span>
+                            Introduction
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#prerequisites" class="nav-link">
+                            <span class="nav-icon">✅</span>
+                            Prerequisites
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#quick-start" class="nav-link">
+                            <span class="nav-icon">⚡</span>
+                            Quick Start
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-1-mongodb-atlas-setup" class="nav-link">
+                            <span class="nav-icon">🍃</span>
+                            MongoDB Setup
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-2-railway-backend-deployment" class="nav-link">
+                            <span class="nav-icon">🚂</span>
+                            Railway Deploy
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-3-vercel-frontend-deployment" class="nav-link">
+                            <span class="nav-icon">▲</span>
+                            Vercel Deploy
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-4-admin-setup" class="nav-link">
+                            <span class="nav-icon">👤</span>
+                            Admin Setup
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-5-telegram-bot-setup" class="nav-link">
+                            <span class="nav-icon">🤖</span>
+                            Telegram Bot
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-6-faucetpay-integration" class="nav-link">
+                            <span class="nav-icon">💰</span>
+                            FaucetPay
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#step-7-cloudflare-turnstile-setup" class="nav-link">
+                            <span class="nav-icon">🛡️</span>
+                            Turnstile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#environment-variables-reference" class="nav-link">
+                            <span class="nav-icon">📝</span>
+                            Env Variables
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#post-deployment-checklist" class="nav-link">
+                            <span class="nav-icon">✅</span>
+                            Checklist
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#troubleshooting" class="nav-link">
+                            <span class="nav-icon">🔧</span>
+                            Troubleshooting
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#faq" class="nav-link">
+                            <span class="nav-icon">❓</span>
+                            FAQ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#support" class="nav-link">
+                            <span class="nav-icon">💬</span>
+                            Support
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <article class="markdown-body" id="content">
+                <!-- Content will be loaded here -->
+                <div style="text-align: center; padding: 4rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+                    <p>Loading documentation...</p>
+                </div>
+            </article>
+        </main>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="https://railway.com?referralCode=MNiSD5" class="footer-link">🚂 Get $20 Railway Credit</a>
+            <a href="#support" class="footer-link">💬 Support</a>
+            <a href="#faq" class="footer-link">❓ FAQ</a>
+        </div>
+        <p>Made with ❤️ for the crypto community</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem;">© 2026 MiniFaucet. All rights reserved.</p>
+    </footer>
+    
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" title="Back to top">↑</button>
+    
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    
+    <!-- Highlight.js for code highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    
+    <script>
+        // Markdown content (embedded for GitHub Pages)
+        const markdownContent = `
+# MiniFaucet Deployment Guide
+
+<div align="center">
+
+**Complete Deployment & Configuration Guide**
+
+</div>
+
+---
+
+## 🔐 Free Credits
+
+### 🚂 Railway - Get $20 FREE Credit
+
+Use our referral link to get **$20 free credit** on Railway:
+
+<div align="center">
+
+### 👉 <a href="https://railway.com?referralCode=MNiSD5" target="_blank">**Click Here to Get $20 Railway Credit**</a> 👈
+
+</div>
+
+### 🍃 MongoDB Atlas - Free Credits
+
+Apply these promo codes in MongoDB Atlas billing section:
+
+| Code | Credit Amount |
+|------|---------------|
+| \`GETATLAS\` | **$100 FREE** |
+| \`GOATLAS10\` | **$10 FREE** |
+
+---
+
+## 🎯 Introduction
+
+> **💡 Need Help?** We offer a **professional installation service for just $20**! We'll set up everything for you - Railway, Vercel, MongoDB, Telegram Bot, and FaucetPay integration. Contact us on Telegram: **[@gemifs](https://t.me/gemifs)**
+
+MiniFaucet is a feature-rich cryptocurrency faucet application built for Telegram Mini Apps. This guide will walk you through deploying your faucet on:
+
+| Service | Purpose | Free Tier |
+|---------|---------|-----------|
+| **MongoDB Atlas** | Database | 512MB Free Forever |
+| **Railway** | Backend API | $5/month free + $20 referral credit |
+| **Vercel** | Frontend Hosting | Generous free tier |
+
+**Estimated Setup Time**: 30-45 minutes
+
+---
+
+## ✅ Prerequisites
+
+Before you begin, ensure you have:
+
+- [ ] **GitHub Account** - [Sign up here](https://github.com/signup)
+- [ ] **Railway Account** - [Sign up with referral](https://railway.com?referralCode=MNiSD5)
+- [ ] **Vercel Account** - [Sign up here](https://vercel.com/signup)
+- [ ] **MongoDB Atlas Account** - [Sign up here](https://mongodb.com/atlas)
+- [ ] **Telegram Bot Token** - From [@BotFather](https://t.me/BotFather)
+- [ ] **FaucetPay Account** - [Sign up here](https://faucetpay.io/?r=4835992)
+- [ ] **Cloudflare Account** - [Sign up here](https://cloudflare.com) (for Turnstile)
+
+---
+
+## ⚡ Quick Start
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────────┐
+│                    DEPLOYMENT OVERVIEW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. MongoDB Atlas    ──▶   Create Database                    │
+│          ↓                                                      │
+│   2. Railway          ──▶   Deploy Backend                     │
+│          ↓                                                      │
+│   3. Vercel           ──▶   Deploy Frontend                    │
+│          ↓                                                      │
+│   4. Configure        ──▶   Set Environment Variables          │
+│          ↓                                                      │
+│   5. Launch           ──▶   Create Admin & Go Live!            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+\`\`\`
+
+---
+
+## 🍃 Step 1: MongoDB Atlas Setup
+
+MongoDB Atlas provides a free cloud database. Follow these steps:
+
+### 1.1 Create Account & Cluster
+
+1. Go to [MongoDB Atlas](https://mongodb.com/atlas)
+2. Click **"Try Free"** and create an account
+3. Choose **"Build a Database"**
+4. Select **FREE - Shared** tier (M0)
+5. Choose your preferred cloud provider and region:
+   - **Recommended**: AWS, closest to your users
+6. Name your cluster (e.g., \`minifaucet-cluster\`)
+7. Click **"Create Cluster"** (takes 1-3 minutes)
+
+### 1.2 Apply Free Credits
+
+1. Go to **Organization Settings** → **Billing**
+2. Click **"Apply Credit"**
+3. Enter code: \`GETATLAS\` for **$100 FREE**
+4. Or enter: \`GOATLAS10\` for **$10 FREE**
+
+### 1.3 Create Database User
+
+1. In left sidebar, click **"Database Access"**
+2. Click **"Add New Database User"**
+3. Choose **"Password"** authentication
+4. Enter username: \`minifaucet\`
+5. Click **"Autogenerate Secure Password"**
+6. **⚠️ SAVE THIS PASSWORD** - You'll need it later!
+7. Set privileges to: **"Read and write to any database"**
+8. Click **"Add User"**
+
+### 1.4 Configure Network Access
+
+1. In left sidebar, click **"Network Access"**
+2. Click **"Add IP Address"**
+3. Click **"Allow Access from Anywhere"** (0.0.0.0/0)
+   - This is required for Railway/Vercel to connect
+4. Click **"Confirm"**
+
+### 1.5 Get Connection String
+
+1. Go to **"Database"** in left sidebar
+2. Click **"Connect"** on your cluster
+3. Choose **"Connect your application"**
+4. Select Driver: **Node.js**, Version: **5.5 or later**
+5. Copy the connection string:
+
+\`\`\`
+mongodb+srv://minifaucet:<password>@minifaucet-cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
+\`\`\`
+
+6. **Replace \`<password>\` with your actual password**
+7. Add database name before \`?\`:
+
+\`\`\`
+mongodb+srv://minifaucet:YOUR_PASSWORD@minifaucet-cluster.xxxxx.mongodb.net/minifaucet?retryWrites=true&w=majority
+\`\`\`
+
+**⚠️ Save this connection string - you'll need it for Railway!**
+
+---
+
+## 🚂 Step 2: Railway Backend Deployment
+
+Railway provides easy backend hosting with automatic deployments.
+
+### 2.1 Sign Up & Get Free Credit
+
+1. Go to [Railway with Referral](https://railway.com?referralCode=MNiSD5) to get **$20 free credit**
+2. Sign up with GitHub (recommended)
+3. Verify your account
+
+### 2.2 Create New Project
+
+1. Click **"New Project"**
+2. Select **"Deploy from GitHub repo"**
+3. Connect your GitHub account if prompted
+4. Select your MiniFaucet repository
+5. Railway will auto-detect it's a Node.js project
+
+### 2.3 Configure Backend Service
+
+1. Click on the deployed service
+2. Go to **"Settings"** tab
+3. Set the following:
+   - **Root Directory**: \`backend\`
+   - **Build Command**: \`npm install\`
+   - **Start Command**: \`npm start\`
+
+### 2.4 Set Environment Variables
+
+1. Go to **"Variables"** tab
+2. Click **"Raw Editor"** for bulk input
+3. Paste the following (replace values with your own):
+
+\`\`\`env
+# Database
+MONGODB_URI=mongodb+srv://minifaucet:YOUR_PASSWORD@cluster.mongodb.net/minifaucet?retryWrites=true&w=majority
+
+# Security
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters-long
+SESSION_SECRET=another-super-secret-session-key-min-32-chars
+
+# Server
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL=https://your-app.vercel.app
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_BOT_USERNAME=YourBotUsername
+
+# FaucetPay
+FAUCETPAY_API_KEY=your-faucetpay-api-key
+
+# Admin (Initial Setup)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your-secure-admin-password
+\`\`\`
+
+> **Note**: Turnstile keys are configured later in Admin Dashboard → Settings → Cloudflare Turnstile section.
+
+4. Click **"Update Variables"**
+
+### 2.5 Get Your Railway Domain
+
+1. Go to **"Settings"** tab
+2. Under **"Networking"** section
+3. Click **"Generate Domain"**
+4. Copy your domain: \`your-app.up.railway.app\`
+
+**Save this URL - you'll need it for:**
+- Frontend API configuration
+- Telegram Bot webhook
+
+### 2.6 Verify Deployment
+
+1. Check **"Deployments"** tab for build progress
+2. Once deployed, visit: \`https://your-app.up.railway.app/api/health\`
+3. You should see: \`{"status":"ok","timestamp":"..."}\`
+
+---
+
+## ▲ Step 3: Vercel Frontend Deployment
+
+Vercel provides fast, global frontend hosting with automatic SSL.
+
+### 3.1 Sign Up
+
+1. Go to [Vercel](https://vercel.com)
+2. Click **"Sign Up"**
+3. Choose **"Continue with GitHub"**
+
+### 3.2 Import Project
+
+1. Click **"Add New..."** → **"Project"**
+2. Select your MiniFaucet repository
+3. Configure the project:
+
+| Setting | Value |
+|---------|-------|
+| **Framework Preset** | Create React App |
+| **Root Directory** | \`frontend\` |
+| **Build Command** | \`npm run build\` |
+| **Output Directory** | \`build\` |
+
+### 3.3 Set Environment Variables
+
+Click **"Environment Variables"** and add:
+
+\`\`\`env
+REACT_APP_API_URL=https://your-app.up.railway.app
+REACT_APP_TELEGRAM_BOT_USERNAME=YourBotUsername
+\`\`\`
+
+> **Note**: Turnstile Site Key is configured in Admin Dashboard, not here.
+
+### 3.4 Deploy
+
+1. Click **"Deploy"**
+2. Wait for build to complete (2-3 minutes)
+3. Your frontend is now live at: \`https://your-app.vercel.app\`
+
+### 3.5 Custom Domain (Optional)
+
+1. Go to **Project Settings** → **Domains**
+2. Add your custom domain
+3. Follow DNS configuration instructions
+4. Vercel will automatically provision SSL
+
+---
+
+## � Step 4: Admin Setup
+
+### 5.1 Initialize Admin Account
+
+**Option A: Via Environment Variables (Recommended for first setup)**
+
+Set these in Railway:
+\`\`\`env
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=YourSecurePassword123!
+\`\`\`
+
+The admin account is created automatically on first startup.
+
+**Option B: Via API (After deployment)**
+
+\`\`\`bash
+curl -X POST https://your-app.up.railway.app/api/admin/init \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "admin@example.com",
+    "password": "YourSecurePassword123!"
+  }'
+\`\`\`
+
+### 5.2 Access Admin Panel
+
+1. Go to: \`https://your-frontend.vercel.app/admin\`
+2. Login with your admin credentials
+3. You'll see the Admin Dashboard
+
+### 5.3 Configure Faucet Settings
+
+In Admin Panel → Settings, configure:
+
+| Setting | Recommended Value |
+|---------|-------------------|
+| Claim Amount | 0.00001000 BTC |
+| Claim Interval | 300 (5 minutes) |
+| Minimum Withdrawal | 0.00010000 BTC |
+| Referral Commission | 10% |
+| Daily Claim Limit | 100 |
+
+---
+
+## 🤖 Step 5: Telegram Bot Setup
+
+### 6.1 Create Bot with BotFather
+
+1. Open Telegram, search for [@BotFather](https://t.me/BotFather)
+2. Send \`/newbot\`
+3. Enter a name for your bot: \`My Faucet Bot\`
+4. Enter a username: \`myfaucet_bot\` (must end with \`bot\`)
+5. **Save the API token** provided
+
+### 6.2 Configure Bot Token
+
+In Railway environment variables:
+
+\`\`\`env
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_BOT_USERNAME=myfaucet_bot
+\`\`\`
+
+### 6.3 Set Up Mini App
+
+1. In BotFather, send \`/mybots\`
+2. Select your bot
+3. Click **"Bot Settings"** → **"Menu Button"**
+4. Click **"Configure menu button"**
+5. Enter your frontend URL: \`https://your-app.vercel.app\`
+6. Enter button text: \`🎰 Open Faucet\`
+
+### 6.4 Enable Mini App
+
+1. In BotFather, send \`/mybots\`
+2. Select your bot
+3. Click **"Bot Settings"** → **"Web Apps"**
+4. Click **"Enable Web Apps"**
+
+### 6.5 Set Webhook (Optional but Recommended)
+
+\`\`\`bash
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://your-app.up.railway.app/api/telegram/webhook"
+\`\`\`
+
+---
+
+## 💰 Step 6: FaucetPay Integration
+
+FaucetPay handles cryptocurrency withdrawals.
+
+### 7.1 Create FaucetPay Account
+
+1. Go to [FaucetPay](https://faucetpay.io/)
+2. Sign up for an account
+3. Verify your email
+
+### 7.2 Get API Key
+
+1. Go to **Owner API** section
+2. Click **"Create New API Key"**
+3. Enter a name: \`MiniFaucet\`
+4. Select permissions:
+   - ✅ Check Balance
+   - ✅ Send Payments
+5. Copy the API key
+
+### 7.3 Configure API Key
+
+In Railway environment variables:
+
+\`\`\`env
+FAUCETPAY_API_KEY=your-faucetpay-api-key-here
+\`\`\`
+
+### 7.4 Fund Your FaucetPay Balance
+
+1. In FaucetPay, go to **Deposit**
+2. Deposit cryptocurrency to your account
+3. These funds will be used for user withdrawals
+
+### 7.5 Verify Integration
+
+In Admin Panel → Settings → FaucetPay:
+- Click **"Test Connection"**
+- Should show: ✅ Connected, Balance: 0.001 BTC
+
+---
+
+## 🛡️ Step 7: Cloudflare Turnstile Setup
+
+Turnstile provides bot protection without CAPTCHAs.
+
+### 8.1 Create Cloudflare Account
+
+1. Go to [Cloudflare](https://cloudflare.com)
+2. Sign up for a free account
+
+### 8.2 Create Turnstile Widget
+
+1. Go to **Turnstile** in sidebar
+2. Click **"Add Widget"**
+3. Enter site name: \`MiniFaucet\`
+4. Add your domains:
+   - \`your-app.vercel.app\`
+   - \`localhost\` (for testing)
+5. Choose widget mode: **Managed**
+6. Click **"Create"**
+
+### 8.3 Get Keys
+
+Copy both keys:
+- **Site Key**: \`0x4AAAAAAxxxxxxxxxx\` (public, for frontend)
+- **Secret Key**: \`0x4AAAAAAxxxxxxxxxx\` (private, for backend)
+
+### 7.4 Configure Keys in Admin Dashboard
+
+1. Open your MiniFaucet Admin Dashboard
+2. Go to **Settings**
+3. Scroll to **Cloudflare Turnstile (Bot Protection)** section
+4. Enter your keys:
+   - **Site Key**: Paste your Site Key
+   - **Secret Key**: Paste your Secret Key
+5. Click **Save Settings**
+
+> ⚠️ **Important**: Both keys are configured in the Admin Dashboard, NOT in environment variables.
+
+---
+
+## 📝 Environment Variables Reference
+
+### Backend (Railway) - Complete List
+
+\`\`\`env
+# ═══════════════════════════════════════════════════════════
+# DATABASE
+# ═══════════════════════════════════════════════════════════
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/minifaucet?retryWrites=true&w=majority
+
+# ═══════════════════════════════════════════════════════════
+# SECURITY
+# ═══════════════════════════════════════════════════════════
+JWT_SECRET=your-32-char-minimum-secret-key-here-make-it-long
+SESSION_SECRET=another-32-char-minimum-secret-key-here
+NODE_ENV=production
+
+# ═══════════════════════════════════════════════════════════
+# SERVER
+# ═══════════════════════════════════════════════════════════
+PORT=3000
+FRONTEND_URL=https://your-app.vercel.app
+
+# ═══════════════════════════════════════════════════════════
+# TELEGRAM
+# ═══════════════════════════════════════════════════════════
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_BOT_USERNAME=your_bot_username
+
+# ═══════════════════════════════════════════════════════════
+# FAUCETPAY
+# ═══════════════════════════════════════════════════════════
+FAUCETPAY_API_KEY=your-faucetpay-api-key
+
+# ═══════════════════════════════════════════════════════════
+# ADMIN (First-time setup only)
+# ═══════════════════════════════════════════════════════════
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=YourSecurePassword123!
+\`\`\`
+
+### Frontend (Vercel) - Complete List
+
+\`\`\`env
+REACT_APP_API_URL=https://your-app.up.railway.app
+REACT_APP_TELEGRAM_BOT_USERNAME=your_bot_username
+\`\`\`
+
+> **Note**: Turnstile keys are configured in Admin Dashboard → Settings → Cloudflare Turnstile section, not in environment variables.
+
+---
+
+## ✅ Post-Deployment Checklist
+
+Use this checklist to verify everything is working:
+
+### Database
+- [ ] MongoDB Atlas cluster is running
+- [ ] Database user created with correct permissions
+- [ ] Network access allows 0.0.0.0/0
+- [ ] Connection string tested
+
+### Backend
+- [ ] Railway deployment successful
+- [ ] Environment variables set
+- [ ] Health check passes: \`/api/health\`
+- [ ] Admin account created
+
+### Frontend
+- [ ] Vercel deployment successful
+- [ ] Environment variables set
+- [ ] Frontend loads without errors
+- [ ] API connection working
+
+### Integrations
+- [ ] Telegram bot responds to /start
+- [ ] Mini App opens from bot
+- [ ] FaucetPay connection verified
+- [ ] Turnstile configured in Admin Dashboard
+
+### Security
+- [ ] Admin password is strong
+- [ ] JWT secret is 32+ characters
+- [ ] HTTPS enabled on all endpoints
+- [ ] No sensitive data in frontend code
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+<details>
+<summary><strong>❌ MongoDB Connection Failed</strong></summary>
+
+**Symptoms:**
+\`\`\`
+MongoServerError: bad auth : authentication failed
+\`\`\`
+
+**Solution:**
+1. Verify password is correct in connection string
+2. Check if special characters in password are URL-encoded
+3. Ensure database user has correct permissions
+4. Verify IP whitelist includes 0.0.0.0/0
+
+</details>
+
+<details>
+<summary><strong>❌ CORS Errors in Browser</strong></summary>
+
+**Symptoms:**
+\`\`\`
+Access to fetch at 'https://api...' has been blocked by CORS policy
+\`\`\`
+
+**Solution:**
+1. Ensure \`FRONTEND_URL\` in Railway matches your Vercel domain exactly
+2. Include the full URL: \`https://your-app.vercel.app\`
+3. Redeploy backend after changing
+
+</details>
+
+<details>
+<summary><strong>❌ Telegram Mini App Not Loading</strong></summary>
+
+**Symptoms:**
+Mini App shows blank or loading forever
+
+**Solution:**
+1. Check browser console for errors
+2. Verify \`REACT_APP_API_URL\` is correct
+3. Ensure backend is running and accessible
+4. Check if Telegram WebApp script is loading
+
+</details>
+
+<details>
+<summary><strong>❌ FaucetPay Withdrawals Failing</strong></summary>
+
+**Symptoms:**
+\`\`\`
+FaucetPay Error: Invalid API Key
+\`\`\`
+
+**Solution:**
+1. Regenerate API key in FaucetPay
+2. Ensure API key has correct permissions
+3. Check if FaucetPay account is verified
+4. Verify sufficient balance
+
+</details>
+
+<details>
+<summary><strong>❌ Turnstile Verification Failed</strong></summary>
+
+**Symptoms:**
+\`\`\`
+Turnstile verification failed
+\`\`\`
+
+**Solution:**
+1. Verify Site Key matches Secret Key
+2. Check if domain is whitelisted in Cloudflare
+3. Add \`localhost\` for local testing
+4. Ensure keys are not swapped between frontend/backend
+
+</details>
+
+### Viewing Logs
+
+**Railway Logs:**
+1. Go to your project in Railway
+2. Click on the service
+3. Go to **"Deployments"** tab
+4. Click **"View Logs"**
+
+**Vercel Logs:**
+1. Go to your project in Vercel
+2. Click **"Deployments"**
+3. Select a deployment
+4. Click **"Functions"** or **"Runtime Logs"**
+
+---
+
+## ❓ FAQ
+
+<details>
+<summary><strong>Q: How much does it cost to run MiniFaucet?</strong></summary>
+
+**A:** With the free credits:
+- **Railway**: $20 free credit (lasts 2-4 months for small traffic)
+- **MongoDB Atlas**: Free tier (512MB) is usually enough
+- **Vercel**: Free tier handles most traffic
+- **Total**: Can run free for months, then ~$5-10/month
+
+</details>
+
+<details>
+<summary><strong>Q: Can I use a custom domain?</strong></summary>
+
+**A:** Yes!
+- **Vercel**: Add domain in Project Settings → Domains
+- **Railway**: Add domain in Service Settings → Networking → Custom Domain
+
+</details>
+
+<details>
+<summary><strong>Q: How do I update to a new version?</strong></summary>
+
+**A:**
+1. Pull the latest code to your repository
+2. Railway and Vercel will auto-deploy on push
+3. Check logs for any migration messages
+4. Verify everything works after update
+
+</details>
+
+<details>
+<summary><strong>Q: How do I backup my database?</strong></summary>
+
+**A:**
+1. In MongoDB Atlas, go to your cluster
+2. Click **"..."** → **"Backup"**
+3. Enable backup or take a snapshot
+4. Download backup if needed
+
+</details>
+
+<details>
+<summary><strong>Q: What cryptocurrencies are supported?</strong></summary>
+
+**A:** All cryptocurrencies supported by FaucetPay:
+- Bitcoin (BTC)
+- Ethereum (ETH)
+- Litecoin (LTC)
+- Dogecoin (DOGE)
+- Bitcoin Cash (BCH)
+- Dash (DASH)
+- Digibyte (DGB)
+- Tron (TRX)
+- Feyorra (FEY)
+- Solana (SOL)
+- And more...
+
+</details>
+
+---
+
+## 💬 Support
+
+If you encounter issues not covered in this guide:
+
+### 🌟 Join Our Community
+
+> **Mini App Owners Group** — Connect with other MiniFaucet owners, get tips, share experiences, and receive updates!
+>
+> 👉 **[Join Telegram Group](https://t.me/+9fJEFXRmdSMwN2Zl)**
+
+### Before Contacting Support
+
+1. ✅ Check this troubleshooting guide
+2. ✅ Review Railway/Vercel logs for errors
+3. ✅ Verify all environment variables are set
+4. ✅ Test with a fresh browser/incognito mode
+
+### Contact Options
+
+- **👥 Community**: [Mini App Owners Group](https://t.me/+9fJEFXRmdSMwN2Zl)
+- **📧 Email**: support@minifaucet.io
+- **💬 Telegram**: [@gemifs](https://t.me/gemifs)
+
+### When Reporting Issues
+
+Please include:
+1. Error message (full text)
+2. Steps to reproduce
+3. Railway/Vercel logs (relevant section)
+4. Browser console errors (if frontend issue)
+5. Your deployment platform details
+
+---
+
+## 📜 License
+
+This software is licensed under a commercial license. Unauthorized distribution, modification of license validation code, or use without a valid license is prohibited.
+
+---
+
+<div align="center">
+
+**Thank you for choosing MiniFaucet! 🎉**
+
+Made with ❤️ for the crypto community
+
+[🚂 Get Railway Credit](https://railway.com?referralCode=MNiSD5) • [📖 Full Documentation](#) • [💬 Support](#)
+
+</div>
+`;
+
+        // Configure marked with custom heading slugger to strip emojis
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            }
+        });
+
+        // Custom renderer to generate clean IDs without emojis
+        const renderer = new marked.Renderer();
+        renderer.heading = function(text, level, raw) {
+            // Strip emojis and special characters, create clean slug
+            const slug = raw
+                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Remove emojis
+                .replace(/[^\w\s-]/g, '')               // Remove special chars
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, '-')                   // Replace spaces with hyphens
+                .replace(/-+/g, '-')                    // Remove duplicate hyphens
+                .replace(/^-|-$/g, '');                 // Remove leading/trailing hyphens
+            return `<h${level} id="${slug}">${text}</h${level}>`;
+        };
+        marked.use({ renderer });
+
+        // Render markdown
+        document.getElementById('content').innerHTML = marked.parse(markdownContent);
+
+        // Highlight all code blocks
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+
+        // Add task list styling
+        document.querySelectorAll('ul').forEach(ul => {
+            const hasCheckbox = ul.querySelector('input[type="checkbox"]');
+            if (hasCheckbox) {
+                ul.classList.add('contains-task-list');
+                ul.querySelectorAll('li').forEach(li => {
+                    if (li.querySelector('input[type="checkbox"]')) {
+                        li.classList.add('task-list-item');
+                    }
+                });
+            }
+        });
+
+        // Progress bar
+        const progressBar = document.getElementById('progressBar');
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrollTop / docHeight) * 100;
+            progressBar.style.width = progress + '%';
+        });
+
+        // Back to top button
+        const backToTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Active nav link highlighting
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('h2[id], h3[id]');
+
+        function updateActiveLink() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.scrollY >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveLink);
+        updateActiveLink();
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                // Close mobile menu if open
+                closeMobileMenu();
+            });
+        });
+
+        // Mobile Menu Functionality
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+
+        function openMobileMenu() {
+            hamburger.classList.add('active');
+            mobileMenu.classList.add('active');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            hamburger.classList.remove('active');
+            mobileMenu.classList.remove('active');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        hamburger.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        });
+
+        mobileMenuClose.addEventListener('click', closeMobileMenu);
+        mobileOverlay.addEventListener('click', closeMobileMenu);
+
+        // Close mobile menu on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+
+        // Close mobile menu on resize to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+    </script>
+</body>
+</html>
