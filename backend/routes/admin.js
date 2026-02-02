@@ -38,6 +38,66 @@ try {
 // DO NOT REMOVE OR BYPASS THESE CHECKS.
 // ============================================
 
+// Check if admin collection is empty (for initial setup)
+router.get('/check-empty', async (req, res) => {
+  try {
+    const adminCount = await Admin.countDocuments();
+    res.json({ isEmpty: adminCount === 0 });
+  } catch (error) {
+    console.error('Error checking admin collection:', error);
+    res.status(500).json({ message: 'Server error', isEmpty: false });
+  }
+});
+
+// Create initial admin user (only works if no admins exist)
+router.post('/init-admin', async (req, res) => {
+  try {
+    // Check if any admin already exists
+    const adminCount = await Admin.countDocuments();
+    if (adminCount > 0) {
+      return res.status(400).json({ 
+        message: 'Admin user already exists. Cannot create initial admin.' 
+      });
+    }
+
+    // Generate random password
+    const generatePassword = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    const username = 'admin';
+    const password = generatePassword();
+
+    // Create admin user
+    const admin = new Admin({
+      username,
+      password,
+      role: 'admin'
+    });
+
+    await admin.save();
+
+    console.log('[ADMIN-INIT] Initial admin user created successfully');
+
+    res.json({
+      success: true,
+      message: 'Admin user created successfully',
+      credentials: {
+        username,
+        password
+      }
+    });
+  } catch (error) {
+    console.error('Error creating initial admin:', error);
+    res.status(500).json({ message: 'Failed to create admin user' });
+  }
+});
+
 // Admin login - REQUIRES FRESH LICENSE VALIDATION
 router.post('/login', async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -46,6 +46,22 @@ const BackIcon = () => (
   </svg>
 );
 
+const UserPlusIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="8.5" cy="7" r="4"/>
+    <line x1="20" y1="8" x2="20" y2="14"/>
+    <line x1="23" y1="11" x2="17" y2="11"/>
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
+
 function AdminLogin() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [twoFactorCode, setTwoFactorCode] = useState('');
@@ -53,9 +69,61 @@ function AdminLogin() {
   const [error, setError] = useState(null);
   const [licenseError, setLicenseError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isAdminEmpty, setIsAdminEmpty] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [adminCredentials, setAdminCredentials] = useState(null);
+  const [copied, setCopied] = useState(false);
   const { loginAdmin } = useAuth();
   const { isDark, toggleTheme } = useAdminTheme();
   const navigate = useNavigate();
+
+  // Check if admin collection is empty on mount
+  useEffect(() => {
+    const checkAdminEmpty = async () => {
+      try {
+        const response = await axios.get('/admin/check-empty');
+        setIsAdminEmpty(response.data.isEmpty);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdminEmpty(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+    checkAdminEmpty();
+  }, []);
+
+  const handleCreateAdmin = async () => {
+    setCreatingAdmin(true);
+    setError(null);
+    try {
+      const response = await axios.post('/admin/init-admin');
+      if (response.data.success) {
+        setAdminCredentials(response.data.credentials);
+        setIsAdminEmpty(false);
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to create admin user');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    const text = `Username: ${adminCredentials.username}\nPassword: ${adminCredentials.password}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleContinueToLogin = () => {
+    setFormData({ 
+      username: adminCredentials.username, 
+      password: adminCredentials.password 
+    });
+    setAdminCredentials(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,42 +182,146 @@ function AdminLogin() {
       </button>
       
       <div className="admin-login-card">
-        <div className="admin-login-header">
-          {twoFactorRequired ? (
-            <>
+        {/* Loading State */}
+        {checkingAdmin ? (
+          <div className="admin-login-header">
+            <div className="admin-login-icon">⏳</div>
+            <h2>Loading...</h2>
+            <p>Checking admin status</p>
+          </div>
+        ) : adminCredentials ? (
+          /* Admin Credentials Display */
+          <>
+            <div className="admin-login-header">
               <div className="admin-login-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
-                <ShieldIcon />
+                ✅
               </div>
-              <h2>Two-Factor Authentication</h2>
-              <p>Enter the code from your authenticator app</p>
-            </>
-          ) : (
-            <>
-              <div className="admin-login-icon">⚡</div>
-              <h2>Admin Login</h2>
-              <p>Sign in to access the admin panel</p>
-            </>
-          )}
-        </div>
-        
-        {/* License Error Display */}
-        {licenseError && (
-          <div className="admin-login-license-error">
-            <div className="license-error-icon">🚫</div>
-            <h3>License Error</h3>
-            <p>{licenseError.message}</p>
-            <small>Error Code: {licenseError.error}</small>
-          </div>
-        )}
-        
-        {/* Regular Login Error */}
-        {error && !licenseError && (
-          <div className="admin-login-error">
-            <span>❌</span> {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
+              <h2>Admin Created!</h2>
+              <p>Save these credentials securely</p>
+            </div>
+            
+            <div className="admin-credentials-display">
+              <div className="credential-item">
+                <label>Username</label>
+                <div className="credential-value">{adminCredentials.username}</div>
+              </div>
+              <div className="credential-item">
+                <label>Password</label>
+                <div className="credential-value" style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>
+                  {adminCredentials.password}
+                </div>
+              </div>
+              
+              <button 
+                type="button" 
+                className="btn btn-secondary admin-login-btn"
+                onClick={handleCopyCredentials}
+                style={{ marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <CopyIcon /> {copied ? 'Copied!' : 'Copy Credentials'}
+              </button>
+              
+              <button 
+                type="button" 
+                className="btn btn-primary admin-login-btn"
+                onClick={handleContinueToLogin}
+                style={{ marginTop: '10px' }}
+              >
+                🔐 Continue to Login
+              </button>
+            </div>
+            
+            <div className="admin-login-warning" style={{ 
+              marginTop: '20px', 
+              padding: '12px', 
+              background: isDark ? 'rgba(234, 179, 8, 0.1)' : 'rgba(234, 179, 8, 0.15)', 
+              borderRadius: '8px',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              fontSize: '13px',
+              color: isDark ? '#fbbf24' : '#b45309'
+            }}>
+              ⚠️ <strong>Important:</strong> Save these credentials now. The password cannot be recovered!
+            </div>
+          </>
+        ) : isAdminEmpty ? (
+          /* Create Admin UI */
+          <>
+            <div className="admin-login-header">
+              <div className="admin-login-icon" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
+                <UserPlusIcon />
+              </div>
+              <h2>Setup Admin</h2>
+              <p>No admin user found. Create one to get started.</p>
+            </div>
+            
+            {error && (
+              <div className="admin-login-error">
+                <span>❌</span> {error}
+              </div>
+            )}
+            
+            <button 
+              type="button" 
+              className="btn btn-primary admin-login-btn"
+              onClick={handleCreateAdmin}
+              disabled={creatingAdmin}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              {creatingAdmin ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '18px', height: '18px' }}></div>
+                  Creating Admin...
+                </>
+              ) : (
+                <>
+                  <UserPlusIcon /> Create Admin User
+                </>
+              )}
+            </button>
+            
+            <p className="admin-login-footer">
+              🔒 A secure password will be generated automatically
+            </p>
+          </>
+        ) : (
+          /* Normal Login UI */
+          <>
+            <div className="admin-login-header">
+              {twoFactorRequired ? (
+                <>
+                  <div className="admin-login-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+                    <ShieldIcon />
+                  </div>
+                  <h2>Two-Factor Authentication</h2>
+                  <p>Enter the code from your authenticator app</p>
+                </>
+              ) : (
+                <>
+                  <div className="admin-login-icon">⚡</div>
+                  <h2>Admin Login</h2>
+                  <p>Sign in to access the admin panel</p>
+                </>
+              )}
+            </div>
+            
+            {/* License Error Display */}
+            {licenseError && (
+              <div className="admin-login-license-error">
+                <div className="license-error-icon">🚫</div>
+                <h3>License Error</h3>
+                <p>{licenseError.message}</p>
+                <small>Error Code: {licenseError.error}</small>
+              </div>
+            )}
+            
+            {/* Regular Login Error */}
+            {error && !licenseError && (
+              <div className="admin-login-error">
+                <span>❌</span> {error}
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit}>
           {!twoFactorRequired ? (
             <>
               <div className="form-group">
@@ -237,6 +409,8 @@ function AdminLogin() {
         <p className="admin-login-footer">
           🔒 Protected Admin Area
         </p>
+          </>
+        )}
       </div>
     </div>
   );
