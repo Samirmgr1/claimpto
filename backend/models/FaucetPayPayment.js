@@ -73,6 +73,15 @@ const faucetPayPaymentSchema = new mongoose.Schema({
     type: Number,
     default: 0 // USD equivalent of the payout
   },
+  // Crypto conversion tracking
+  cryptoAmount: {
+    type: Number,
+    default: 0 // Actual crypto amount sent (e.g., 0.001 BTC)
+  },
+  coinExchangeRate: {
+    type: Number,
+    default: 0 // USD per 1 coin at time of transaction
+  },
   // Timestamps
   createdAt: {
     type: Date,

@@ -64,8 +64,42 @@ async function getFaucetPaySettings() {
     feeType: settingsObj.fee_type || 'percentage',
     processingTime: settingsObj.processing_time || 'Instant',
     dailyLimit: parseInt(settingsObj.daily_limit) || 0,
-    referToAccountBalance: settingsObj.refer_to_account_balance === true
+    referToAccountBalance: settingsObj.refer_to_account_balance === true,
+    // Exchange rates: USD value per 1 coin (e.g., BTC: 96000 means 1 BTC = $96,000)
+    exchangeRates: settingsObj.exchange_rates || {}
   };
+}
+
+/**
+ * Convert USD amount to crypto amount based on exchange rate
+ * @param {number} usdAmount - Amount in USD
+ * @param {string} currency - Crypto currency code (e.g., 'BTC', 'LTC')
+ * @param {Object} exchangeRates - Exchange rates object { BTC: 96000, LTC: 100, ... }
+ * @returns {number} Amount in crypto
+ */
+function usdToCrypto(usdAmount, currency, exchangeRates) {
+  const rate = parseFloat(exchangeRates[currency]) || 0;
+  if (rate <= 0) {
+    throw new Error(`Exchange rate not configured for ${currency}`);
+  }
+  // rate = USD per 1 coin, so crypto = usd / rate
+  return usdAmount / rate;
+}
+
+/**
+ * Convert crypto amount to USD based on exchange rate
+ * @param {number} cryptoAmount - Amount in crypto
+ * @param {string} currency - Crypto currency code
+ * @param {Object} exchangeRates - Exchange rates object
+ * @returns {number} Amount in USD
+ */
+function cryptoToUsd(cryptoAmount, currency, exchangeRates) {
+  const rate = parseFloat(exchangeRates[currency]) || 0;
+  if (rate <= 0) {
+    throw new Error(`Exchange rate not configured for ${currency}`);
+  }
+  // rate = USD per 1 coin, so usd = crypto * rate
+  return cryptoAmount * rate;
 }
 
 // Check if user can withdraw via FaucetPay
@@ -152,9 +186,13 @@ router.get('/info', authenticateUser, async (req, res) => {
       platformCurrencyName: currencySettings.currencyName,
       platformCurrencySymbol: currencySettings.currencySymbol,
       exchangeRate: currencySettings.exchangeRate,
+      // FaucetPay coin exchange rates (USD per 1 coin)
+      coinExchangeRates: fpSettings.exchangeRates || {},
+      currentCoinRate: parseFloat(fpSettings.exchangeRates?.[fpSettings.currency]) || 0,
       supportedCurrencies: Object.keys(SUPPORTED_CURRENCIES).map(code => ({
         code,
-        name: SUPPORTED_CURRENCIES[code].name
+        name: SUPPORTED_CURRENCIES[code].name,
+        exchangeRate: parseFloat(fpSettings.exchangeRates?.[code]) || 0
       }))
     });
   } catch (error) {
@@ -188,18 +226,29 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
       return res.status(403).json({ message: 'Account is suspended or banned' });
     }
     
+    // Get currency settings for platform currency mode
+    const currencySettings = await getCurrencySettings();
+    
+    // Validate exchange rate is configured for the selected currency
+    const coinExchangeRate = parseFloat(fpSettings.exchangeRates?.[fpSettings.currency]) || 0;
+    if (coinExchangeRate <= 0) {
+      return res.status(500).json({ 
+        message: `Exchange rate not configured for ${fpSettings.currency}. Please contact support.` 
+      });
+    }
+    
     const withdrawAmount = parseFloat(amount);
     
-    // Validate amount
+    // Validate amount (amount is in platform currency - USD or Points)
     if (withdrawAmount < fpSettings.minWithdrawal) {
       return res.status(400).json({ 
-        message: `Minimum withdrawal is ${fpSettings.minWithdrawal} ${fpSettings.currency}` 
+        message: `Minimum withdrawal is ${fpSettings.minWithdrawal} ${currencySettings.currencyName}` 
       });
     }
     
     if (withdrawAmount > fpSettings.maxWithdrawal) {
       return res.status(400).json({ 
-        message: `Maximum withdrawal is ${fpSettings.maxWithdrawal} ${fpSettings.currency}` 
+        message: `Maximum withdrawal is ${fpSettings.maxWithdrawal} ${currencySettings.currencyName}` 
       });
     }
     
@@ -213,13 +262,22 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
       return res.status(400).json({ message: canWithdrawResult.reason });
     }
     
-    // Calculate fee
+    // Calculate fee (in platform currency)
     const fee = calculateFee(withdrawAmount, fpSettings);
-    const netAmount = withdrawAmount - fee;
+    const netAmount = withdrawAmount - fee; // Net amount in platform currency
     
-    // Get currency settings for payout calculation
-    const currencySettings = await getCurrencySettings();
+    // Convert platform currency to USD if needed
     const payoutInfo = await getPayoutAmount(netAmount, currencySettings);
+    const usdAmount = payoutInfo.payoutAmount; // This is the USD equivalent after deducting fee
+    
+    // Convert USD to crypto amount using the admin-defined exchange rate
+    // coinExchangeRate = USD per 1 coin (e.g., BTC: 96000 means 1 BTC = $96,000)
+    const cryptoAmount = usdAmount / coinExchangeRate;
+    
+    // Validate crypto amount is positive
+    if (cryptoAmount <= 0) {
+      return res.status(400).json({ message: 'Amount too small after conversion' });
+    }
     
     // Create payment record
     const payment = new FaucetPayPayment({
@@ -232,7 +290,10 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
       // Currency conversion tracking
       currencyMode: currencySettings.mode,
       exchangeRate: currencySettings.exchangeRate,
-      usdEquivalent: payoutInfo.payoutAmount,
+      usdEquivalent: usdAmount,
+      // Crypto conversion tracking
+      cryptoAmount: cryptoAmount,
+      coinExchangeRate: coinExchangeRate,
       status: 'pending'
     });
     await payment.save();
@@ -243,9 +304,10 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
     
     try {
       // Make FaucetPay API call
+      // FaucetPay expects amount in satoshi (smallest unit - 8 decimal places)
       const formData = new URLSearchParams();
       formData.append('api_key', fpSettings.apiKey);
-      formData.append('amount', Math.round(netAmount * 100000000)); // Convert to satoshi
+      formData.append('amount', Math.round(cryptoAmount * 100000000)); // Convert crypto to satoshi
       formData.append('to', address.trim());
       formData.append('currency', fpSettings.currency.toLowerCase());
       
@@ -288,26 +350,33 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
           // Currency conversion fields
           currencyMode: currencySettings.mode,
           exchangeRate: currencySettings.exchangeRate,
-          usdPayoutAmount: payoutInfo.payoutAmount
+          usdPayoutAmount: usdAmount,
+          // Crypto conversion fields
+          cryptoAmount: cryptoAmount,
+          coinExchangeRate: coinExchangeRate,
+          cryptoCurrency: fpSettings.currency
         });
         await withdrawal.save();
         
         payment.withdrawal = withdrawal._id;
         await payment.save();
         
+        // Format crypto amount for display (8 decimal places)
+        const cryptoAmountFormatted = cryptoAmount.toFixed(8);
+        
         // Send notification
         const notification = new Notification({
           user: user._id,
           type: 'reward',
           title: 'Withdrawal Successful!',
-          message: `Your withdrawal of ${netAmount} ${fpSettings.currency} has been sent to ${address}`,
+          message: `Your withdrawal of ${cryptoAmountFormatted} ${fpSettings.currency} has been sent to ${address}`,
           priority: 'high'
         });
         await notification.save();
         
         // Telegram notification
         if (user.telegramId) {
-          const telegramMessage = `✅ <b>Withdrawal Successful!</b>\n\n💰 Amount: <b>${netAmount} ${fpSettings.currency}</b>\n📧 To: ${address}\n🆔 Payout ID: ${payment.payoutId}\n\nYour funds have been sent instantly via FaucetPay!`;
+          const telegramMessage = `✅ <b>Withdrawal Successful!</b>\n\n💰 Crypto Sent: <b>${cryptoAmountFormatted} ${fpSettings.currency}</b>\n💵 Value: $${usdAmount.toFixed(5)}\n📧 To: ${address}\n🆔 Payout ID: ${payment.payoutId}\n\nYour funds have been sent instantly via FaucetPay!`;
           sendMessage(user.telegramId, telegramMessage).catch(err => {
             console.error('Failed to send FaucetPay notification:', err);
           });
@@ -321,6 +390,9 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
             amount: withdrawAmount,
             fee,
             netAmount,
+            usdAmount: usdAmount,
+            cryptoAmount: cryptoAmount,
+            coinExchangeRate: coinExchangeRate,
             currency: fpSettings.currency,
             payoutId: payment.payoutId,
             status: 'success'
@@ -338,7 +410,7 @@ router.post('/withdraw', authenticateUser, verifyTurnstile, async (req, res) => 
         
         // Telegram notification for failed withdrawal
         if (user.telegramId) {
-          const telegramMessage = `❌ <b>Withdrawal Failed</b>\n\n💰 Amount: <b>${withdrawAmount} ${fpSettings.currency}</b>\n📧 To: ${address}\n\n⚠️ Reason: ${apiResponse.data.message || 'Unknown error'}\n\n💵 Your balance has been refunded. Please check your FaucetPay email/address and try again.`;
+          const telegramMessage = `❌ <b>Withdrawal Failed</b>\n\n💰 Amount: <b>${netAmount} ${currencySettings.currencyName}</b>\n📧 To: ${address}\n\n⚠️ Reason: ${apiResponse.data.message || 'Unknown error'}\n\n💵 Your balance has been refunded. Please check your FaucetPay email/address and try again.`;
           sendMessage(user.telegramId, telegramMessage).catch(err => {
             console.error('Failed to send FaucetPay failure notification:', err);
           });

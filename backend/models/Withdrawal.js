@@ -84,6 +84,19 @@ const withdrawalSchema = new mongoose.Schema({
   usdPayoutAmount: {
     type: Number,
     default: 0 // Actual USD amount to be paid out
+  },
+  // Crypto conversion fields (for FaucetPay instant withdrawals)
+  cryptoAmount: {
+    type: Number,
+    default: 0 // Actual crypto amount sent
+  },
+  coinExchangeRate: {
+    type: Number,
+    default: 0 // USD per 1 coin at time of transaction
+  },
+  cryptoCurrency: {
+    type: String,
+    default: '' // e.g., 'BTC', 'LTC', 'TRX'
   }
 });
 

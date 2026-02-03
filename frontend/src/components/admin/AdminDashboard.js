@@ -2601,7 +2601,8 @@ function FaucetPayTab() {
         faucetpayFeeType: settings.faucetpayFeeType,
         faucetpayProcessingTime: settings.faucetpayProcessingTime,
         faucetpayDailyLimit: settings.faucetpayDailyLimit,
-        faucetpayReferToAccountBalance: settings.faucetpayReferToAccountBalance
+        faucetpayReferToAccountBalance: settings.faucetpayReferToAccountBalance,
+        faucetpayExchangeRates: settings.faucetpayExchangeRates || {}
       });
       alert('FaucetPay settings saved successfully!');
       cacheService.invalidatePattern('admin/settings');
@@ -2958,6 +2959,81 @@ function FaucetPayTab() {
                 </button>
               </div>
 
+              {/* Exchange Rates Configuration */}
+              <div className="card">
+                <div className="card-header">
+                  <h2 className="card-title">
+                    <span className="card-icon">💱</span>
+                    Coin Exchange Rates
+                  </h2>
+                </div>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                  Set the USD value per 1 coin for each cryptocurrency. These rates are used to convert user's balance to the crypto amount when withdrawing.
+                  <br /><strong>Example:</strong> If BTC rate is 96000, then $1 USD = 0.00001042 BTC
+                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                  {SUPPORTED_CURRENCIES.map(coin => (
+                    <div key={coin.code} className="form-group" style={{ marginBottom: '8px' }}>
+                      <label className="form-label" style={{ fontSize: '13px' }}>
+                        {coin.name} ({coin.code})
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>$</span>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={settings.faucetpayExchangeRates?.[coin.code] || ''}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            faucetpayExchangeRates: {
+                              ...settings.faucetpayExchangeRates,
+                              [coin.code]: parseFloat(e.target.value) || 0
+                            }
+                          })}
+                          placeholder="0.00"
+                          step="0.00000001"
+                          min="0"
+                          style={{ fontSize: '13px' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick note about the current payment currency */}
+                {settings.faucetpayCurrency && (
+                  <div style={{ 
+                    marginTop: '16px', 
+                    padding: '12px', 
+                    background: 'var(--bg-secondary)', 
+                    borderRadius: '8px',
+                    fontSize: '13px'
+                  }}>
+                    <strong>Current Payment Currency:</strong> {settings.faucetpayCurrency}
+                    {settings.faucetpayExchangeRates?.[settings.faucetpayCurrency] ? (
+                      <span style={{ marginLeft: '8px', color: 'var(--success-color)' }}>
+                        ✓ Rate set: ${settings.faucetpayExchangeRates[settings.faucetpayCurrency]}
+                      </span>
+                    ) : (
+                      <span style={{ marginLeft: '8px', color: 'var(--danger-color)' }}>
+                        ⚠️ No rate configured - withdrawals will fail!
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Save Exchange Rates Button */}
+                <button 
+                  className="btn btn-primary" 
+                  onClick={updateSettings}
+                  disabled={saving}
+                  style={{ marginTop: '16px' }}
+                >
+                  {saving ? 'Saving...' : '💾 Save Exchange Rates'}
+                </button>
+              </div>
+
               {/* Help Section */}
               <div className="card">
                 <div className="card-header">
@@ -2970,9 +3046,10 @@ function FaucetPayTab() {
                   <p style={{ marginBottom: '8px' }}>1. Create a FaucetPay account at <a href="https://faucetpay.io" target="_blank" rel="noopener noreferrer">faucetpay.io</a></p>
                   <p style={{ marginBottom: '8px' }}>2. Go to <a href="https://faucetpay.io/account/api-keys" target="_blank" rel="noopener noreferrer">API Keys</a> and create a new API key</p>
                   <p style={{ marginBottom: '8px' }}>3. Make sure your API key has the "Send" permission enabled</p>
-                  <p style={{ marginBottom: '8px' }}>4. Fund your FaucetPay balance with the selected currency</p>
-                  <p style={{ marginBottom: '8px' }}>5. Users can withdraw using their FaucetPay linked email address</p>
-                  <p>6. Withdrawals are processed instantly via the FaucetPay API</p>
+                  <p style={{ marginBottom: '8px' }}>4. <strong>Configure exchange rates</strong> for the coins you want to support</p>
+                  <p style={{ marginBottom: '8px' }}>5. Fund your FaucetPay balance with the selected currency</p>
+                  <p style={{ marginBottom: '8px' }}>6. Users can withdraw using their FaucetPay linked email address</p>
+                  <p>7. Withdrawals are processed instantly via the FaucetPay API</p>
                 </div>
               </div>
             </div>

@@ -1673,6 +1673,8 @@ router.get('/settings', authenticateAdmin, requireValidLicense, async (req, res)
       faucetpayProcessingTime: settingsObj.faucetpay_processing_time || 'Instant',
       faucetpayDailyLimit: settingsObj.faucetpay_daily_limit || 0,
       faucetpayReferToAccountBalance: settingsObj.faucetpay_refer_to_account_balance || false,
+      // FaucetPay Exchange Rates (USD value per 1 coin, e.g., BTC: 96000 means 1 BTC = $96,000)
+      faucetpayExchangeRates: settingsObj.faucetpay_exchange_rates || {},
       
       // Telegram Bot Settings
       telegramBotUsername: settingsObj.telegram_bot_username || '',
@@ -1780,6 +1782,7 @@ router.put('/settings', authenticateAdmin, requireValidLicense, async (req, res)
       faucetpayProcessingTime: 'faucetpay_processing_time',
       faucetpayDailyLimit: 'faucetpay_daily_limit',
       faucetpayReferToAccountBalance: 'faucetpay_refer_to_account_balance',
+      faucetpayExchangeRates: 'faucetpay_exchange_rates',
       // Legal Settings
       privacyPolicy: 'privacy_policy',
       termsAndConditions: 'terms_and_conditions',

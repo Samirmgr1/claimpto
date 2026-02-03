@@ -283,7 +283,9 @@ function Withdrawals() {
       });
       
       if (response.data.success) {
-        setSuccess(`🎉 Withdrawal successful! ${response.data.payment.netAmount} ${faucetPayInfo.currency} has been sent to your FaucetPay account instantly!`);
+        const payment = response.data.payment;
+        const cryptoAmount = payment.cryptoAmount?.toFixed(8) || payment.netAmount;
+        setSuccess(`🎉 Withdrawal successful! ${cryptoAmount} ${payment.currency} has been sent to your FaucetPay account instantly!`);
         setShowFaucetPay(false);
         setFaucetPayForm({ amount: '', address: '' });
         fetchWithdrawals();
@@ -323,6 +325,23 @@ function Withdrawals() {
   const getFaucetPayNetAmount = () => {
     const amount = parseFloat(faucetPayForm.amount) || 0;
     return Math.max(0, amount - calculateFaucetPayFee());
+  };
+  
+  // Calculate USD equivalent of the net amount (after fee)
+  const getFaucetPayUsdAmount = () => {
+    const netAmount = getFaucetPayNetAmount();
+    if (isPointsMode && netAmount > 0) {
+      return pointsToUSD(netAmount);
+    }
+    return netAmount; // Already in USD if fiat mode
+  };
+  
+  // Calculate crypto amount based on exchange rate
+  const getFaucetPayCryptoAmount = () => {
+    if (!faucetPayInfo?.currentCoinRate || faucetPayInfo.currentCoinRate <= 0) return 0;
+    const usdAmount = getFaucetPayUsdAmount();
+    // currentCoinRate = USD per 1 coin, so crypto = usd / rate
+    return usdAmount / faucetPayInfo.currentCoinRate;
   };
 
   const setMaxAmount = () => {
@@ -713,7 +732,7 @@ function Withdrawals() {
 
               <form className="withdrawal-form" onSubmit={handleFaucetPaySubmit}>
                 <div className="form-group">
-                  <label className="form-label">Amount ({faucetPayInfo.currency})</label>
+                  <label className="form-label">Amount ({currencyName})</label>
                   <div className="input-with-button">
                     <input
                       type="number"
@@ -734,17 +753,35 @@ function Withdrawals() {
                       {faucetPayInfo.fee > 0 && (
                         <div className="breakdown-item">
                           <span>Fee ({faucetPayInfo.fee}{faucetPayInfo.feeType === 'percentage' ? '%' : ' fixed'})</span>
-                          <span className="breakdown-value negative">-{calculateFaucetPayFee().toFixed(8)}</span>
+                          <span className="breakdown-value negative">-{calculateFaucetPayFee().toFixed(5)} {currencyName}</span>
                         </div>
                       )}
-                      <div className="breakdown-item breakdown-total">
-                        <span>You'll receive</span>
-                        <span className="breakdown-value positive">{getFaucetPayNetAmount().toFixed(8)} {currencyName}</span>
+                      <div className="breakdown-item">
+                        <span>Net Amount</span>
+                        <span className="breakdown-value">{getFaucetPayNetAmount().toFixed(5)} {currencyName}</span>
                       </div>
                       {isPointsMode && getFaucetPayNetAmount() > 0 && (
                         <div className="breakdown-item usd-equivalent">
-                          <span>USD Equivalent</span>
-                          <span className="breakdown-value">{formatUSD(pointsToUSD(getFaucetPayNetAmount()))}</span>
+                          <span>USD Value</span>
+                          <span className="breakdown-value">{formatUSD(getFaucetPayUsdAmount())}</span>
+                        </div>
+                      )}
+                      {faucetPayInfo.currentCoinRate > 0 && getFaucetPayCryptoAmount() > 0 && (
+                        <div className="breakdown-item breakdown-total">
+                          <span>You'll receive</span>
+                          <span className="breakdown-value positive">
+                            {getFaucetPayCryptoAmount().toFixed(8)} {faucetPayInfo.currency}
+                          </span>
+                        </div>
+                      )}
+                      {(!faucetPayInfo.currentCoinRate || faucetPayInfo.currentCoinRate <= 0) && (
+                        <div className="breakdown-item" style={{ color: 'var(--danger-color)' }}>
+                          <span>⚠️ Exchange rate not configured</span>
+                        </div>
+                      )}
+                      {faucetPayInfo.currentCoinRate > 0 && (
+                        <div className="breakdown-item" style={{ fontSize: '11px', opacity: 0.7 }}>
+                          <span>Rate: 1 {faucetPayInfo.currency} = ${faucetPayInfo.currentCoinRate.toLocaleString()}</span>
                         </div>
                       )}
                     </div>
@@ -795,7 +832,8 @@ function Withdrawals() {
                     parseFloat(faucetPayForm.amount) < (faucetPayInfo.minWithdrawal || 0) ||
                     !faucetPayForm.address.trim() ||
                     (faucetPayInfo.dailyLimit > 0 && faucetPayInfo.remainingToday <= 0) ||
-                    (settings?.turnstile?.enabled && !turnstile.isVerified)
+                    (settings?.turnstile?.enabled && !turnstile.isVerified) ||
+                    !faucetPayInfo.currentCoinRate || faucetPayInfo.currentCoinRate <= 0
                   }
                 >
                   {faucetPaySubmitting ? (
@@ -806,7 +844,9 @@ function Withdrawals() {
                   ) : (
                     <>
                       <BoltIcon />
-                      <span>Withdraw {faucetPayForm.amount || 0} {faucetPayInfo.currency} Instantly</span>
+                      <span>
+                        Withdraw {getFaucetPayCryptoAmount() > 0 ? getFaucetPayCryptoAmount().toFixed(8) : faucetPayForm.amount || 0} {faucetPayInfo.currency} Instantly
+                      </span>
                     </>
                   )}
                 </button>
