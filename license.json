@@ -1,6 +1,6 @@
 {
   "license_key": "7033-C44F-808B-CEA6",
-  "product_id": " ORD-ML4ZF9M8-9OM48N",
+  "product_id": "ORD-ML4ZF9M8-9OM48N",
   "validation_url": "https://license-management-production.up.railway.app/api/licenses/validate",
   "info_url": "https://license-management-production.up.railway.app/api/licenses/info",
   "version": "1.0.0"
