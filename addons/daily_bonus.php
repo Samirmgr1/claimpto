@@ -215,9 +215,7 @@ if ($status !== '1' && $status !== 1) {
         </div>
 
         <!-- Giga.pub Ad -->
-        <div class="mb-4">
-            <script src="https://ad.gigapub.tech/script?id=6437"></script>
-        </div>
+        <div id="gigapub-ad-container" class="mb-4"></div>
 
         <div id="claim-action-area" class="flex flex-col items-center">
             <?php if ($canClaim): ?>
@@ -248,6 +246,16 @@ if ($status !== '1' && $status !== 1) {
 </div>
 
 <script>
+    // Load Giga.pub ad dynamically
+    (function() {
+        const adContainer = document.getElementById('gigapub-ad-container');
+        if (adContainer) {
+            const adScript = document.createElement('script');
+            adScript.src = 'https://ad.gigapub.tech/script?id=6437';
+            adContainer.appendChild(adScript);
+        }
+    })();
+
     let dbTurnstileWidgetId = null;
     
     function initDailyBonusTurnstile() {
