@@ -1,0 +1,54 @@
+# MiniFaucet Documentation - GitHub Pages Configuration
+
+# Site settings
+title: MiniFaucet Documentation
+description: Complete deployment guide for MiniFaucet - Deploy on Railway, Vercel, and MongoDB Atlas
+baseurl: "/minifaucet" # Replace with your repo name if different
+url: "" # GitHub will fill this in
+
+# Theme (optional - we use custom HTML)
+remote_theme: pages-themes/minimal@v0.2.0
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Kramdown settings
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Exclude from processing
+exclude:
+  - README.md
+  - LICENSE
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .gitignore
+
+# Include files
+include:
+  - index.html
+  - DEPLOYMENT_GUIDE.md
+
+# Plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+
+# SEO
+author: MiniFaucet
+twitter:
+  card: summary
+social:
+  name: MiniFaucet
+  links: []
+
+# Analytics (optional - add your Google Analytics ID)
+# google_analytics: UA-XXXXXXXX-X
