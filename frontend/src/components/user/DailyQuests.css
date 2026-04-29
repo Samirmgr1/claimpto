@@ -1,0 +1,872 @@
+/* ============================================
+   DAILY QUESTS PAGE - PREMIUM STYLES
+   Professional, Clean & Responsive Design
+   ============================================ */
+
+/* Page Container */
+.dq-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg-primary);
+  padding-bottom: calc(80px + var(--safe-area-bottom, 0px));
+}
+
+.dq-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+.dq-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.dq-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: dqSpin 0.8s linear infinite;
+}
+
+@keyframes dqSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   DISABLED / ERROR STATE
+   ============================================ */
+.dq-disabled {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 32px;
+}
+
+.dq-disabled svg {
+  opacity: 0.4;
+}
+
+.dq-disabled h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dq-disabled p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ============================================
+   ALERTS
+   ============================================ */
+.dq-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  line-height: 1.5;
+  animation: dqSlideDown 0.3s ease;
+}
+
+@keyframes dqSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dq-alert span {
+  flex: 1;
+}
+
+.dq-alert button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0;
+  line-height: 1;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.dq-alert button:hover {
+  opacity: 1;
+}
+
+.dq-alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.dq-alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+[data-theme="dark"] .dq-alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="dark"] .dq-alert-success {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ============================================
+   HEADER CARD
+   ============================================ */
+.dq-header-card {
+  position: relative;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+}
+
+.dq-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: var(--primary-gradient);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.dq-header-content {
+  position: relative;
+  padding: 20px;
+}
+
+.dq-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dq-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dq-header-title svg {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.dq-header-title h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.dq-header-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.dq-reset-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.dq-reset-timer svg {
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .dq-reset-timer {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+/* ============================================
+   OVERALL PROGRESS
+   ============================================ */
+.dq-overall-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dq-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.dq-progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .dq-progress-bar-container {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dq-progress-bar-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+/* ============================================
+   STREAK CARD
+   ============================================ */
+.dq-streak-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.dq-streak-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dq-streak-fire {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc02 100%);
+  border-radius: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.dq-streak-fire svg {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.5;
+}
+
+.dq-streak-count {
+  position: relative;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dq-streak-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dq-streak-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ============================================
+   MILESTONES
+   ============================================ */
+.dq-milestones {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-top: 8px;
+}
+
+.dq-milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+}
+
+.dq-milestone-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.dq-milestone.locked .dq-milestone-dot {
+  border-color: var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.dq-milestone.reached .dq-milestone-dot {
+  border-color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+.dq-milestone.available .dq-milestone-dot {
+  border-color: var(--success-color);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  animation: dqPulse 2s ease-in-out infinite;
+}
+
+.dq-milestone.claimed .dq-milestone-dot {
+  border-color: var(--success-color);
+  background: var(--success-color);
+  color: #fff;
+}
+
+@keyframes dqPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+.dq-milestone-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dq-milestone.locked .dq-milestone-label {
+  opacity: 0.5;
+}
+
+.dq-milestone-reward {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.dq-milestone-claim-btn {
+  margin-top: 2px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--success-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.dq-milestone-claim-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.dq-milestone-claim-btn:active {
+  transform: translateY(0);
+}
+
+.dq-milestone-claim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Milestone connecting line */
+.dq-milestone-line {
+  position: absolute;
+  top: 28px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: var(--border-color);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+[data-theme="dark"] .dq-milestone-line {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dq-milestone-line-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b35, #f7931e, #ffcc02);
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   QUESTS SECTION
+   ============================================ */
+.dq-quests-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dq-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dq-section-title svg {
+  color: var(--warning-color);
+}
+
+/* Empty State */
+.dq-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.dq-empty svg {
+  opacity: 0.3;
+}
+
+.dq-empty h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dq-empty p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   QUEST CARDS
+   ============================================ */
+.dq-quests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dq-quest-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.dq-quest-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.dq-quest-card.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, var(--bg-card) 100%);
+}
+
+.dq-quest-card.claimed {
+  opacity: 0.65;
+}
+
+/* Quest Icon */
+.dq-quest-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.08);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.dq-quest-card.completed .dq-quest-icon {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.dq-quest-card.claimed .dq-quest-icon {
+  background: var(--border-color);
+}
+
+[data-theme="dark"] .dq-quest-icon {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+/* Quest Content */
+.dq-quest-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dq-quest-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dq-quest-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.dq-quest-card.claimed .dq-quest-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.dq-quest-reward {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dq-quest-card.completed .dq-quest-reward {
+  color: var(--success-color);
+}
+
+.dq-quest-card.claimed .dq-quest-reward {
+  color: var(--text-muted);
+}
+
+.dq-quest-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Quest Progress Bar */
+.dq-quest-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dq-quest-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .dq-quest-progress-bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dq-quest-progress-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dq-quest-card.completed .dq-quest-progress-fill,
+.dq-quest-card.claimed .dq-quest-progress-fill {
+  background: var(--success-color);
+}
+
+.dq-quest-progress-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   QUEST ACTIONS
+   ============================================ */
+.dq-quest-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.dq-quest-done {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success-color);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.dq-claim-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--primary-gradient);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.dq-claim-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.dq-claim-btn:active {
+  transform: translateY(0);
+}
+
+.dq-claim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.dq-claim-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dq-btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: dqSpin 0.7s linear infinite;
+}
+
+.dq-quest-in-progress {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   ============================================ */
+[data-theme="dark"] .dq-header-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dq-header-bg {
+  opacity: 0.12;
+}
+
+[data-theme="dark"] .dq-streak-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dq-quest-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dq-quest-card.completed {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, var(--bg-card) 100%);
+}
+
+[data-theme="dark"] .dq-milestone-dot {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .dq-milestone.locked .dq-milestone-dot {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .dq-milestone.reached .dq-milestone-dot {
+  border-color: var(--primary-light);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .dq-milestone.available .dq-milestone-dot {
+  border-color: var(--success-color);
+  background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .dq-quest-card.claimed .dq-quest-icon {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 400px) {
+  .dq-container {
+    padding: 12px;
+  }
+
+  .dq-header-content {
+    padding: 16px;
+  }
+
+  .dq-header-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dq-reset-timer {
+    align-self: flex-start;
+  }
+
+  .dq-header-title h1 {
+    font-size: 18px;
+  }
+
+  .dq-streak-card {
+    padding: 16px;
+  }
+
+  .dq-milestone-dot {
+    width: 34px;
+    height: 34px;
+    font-size: 10px;
+  }
+
+  .dq-milestone-label {
+    font-size: 10px;
+  }
+
+  .dq-milestone-reward {
+    font-size: 9px;
+  }
+
+  .dq-milestone-claim-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .dq-milestone-line {
+    top: 25px;
+  }
+
+  .dq-quest-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .dq-quest-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  .dq-claim-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .dq-claim-btn span {
+    display: none;
+  }
+}
+
+@media (max-width: 340px) {
+  .dq-milestone-reward {
+    display: none;
+  }
+
+  .dq-milestone-claim-btn {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
+
