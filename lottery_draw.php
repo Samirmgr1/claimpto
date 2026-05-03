@@ -6,6 +6,7 @@
  * 
  * Set the cron key in admin Settings > lottery_cron_key
  */
+define('POSTBACK_MODE', true);
 require_once 'core/db.php';
 require_once 'core/functions.php';
 

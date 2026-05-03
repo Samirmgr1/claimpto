@@ -190,11 +190,11 @@ function broadcastLotteryWinner($pdo, $winnerUsername, $ticketNumber, $prize, $w
     return ['sent' => $sent, 'failed' => $failed, 'total' => count($allUsers)];
 }
 
-if (session_status() === PHP_SESSION_NONE) {
+if (!defined('POSTBACK_MODE') && session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (isset($_SESSION['user_id']) && isset($_SESSION['login_ip']) && empty($_SESSION['is_telegram'])) {
+if (!defined('POSTBACK_MODE') && isset($_SESSION['user_id']) && isset($_SESSION['login_ip']) && empty($_SESSION['is_telegram'])) {
     $current_ip = getUserIP();
     
     if ($current_ip !== $_SESSION['login_ip']) {

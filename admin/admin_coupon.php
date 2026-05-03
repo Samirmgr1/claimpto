@@ -113,43 +113,161 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $stmt = $pdo->query("SELECT * FROM addon_coupons ORDER BY id DESC");
 $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+<?php
+$site_logo = getSetting('site_logo') ?: '';
+$totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coupon System - Admin</title>
+    <title>Coupon System - Admin Panel</title>
+    <?php if (!empty($site_logo) && file_exists('../' . $site_logo)): ?>
+    <link rel="icon" type="image/png" href="../<?php echo htmlspecialchars($site_logo); ?>" />
+    <?php else: ?>
+    <link rel="icon" type="image/png" href="data:," />
+    <?php endif; ?>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } }
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
-        
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#060913', 800: '#0F1320', 700: '#1A1F30' },
+                        brand: { primary: '#8B5CF6', accent: '#22D3EE' }
+                    }
+                }
+            }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
         function toggleReqFields(val) {
             const displayStyle = val === 'none' ? 'none' : 'block';
             document.getElementById('req_amt_div').style.display = displayStyle;
             document.getElementById('req_time_div').style.display = displayStyle;
         }
     </script>
+    <style>
+        .admin-nav.active { background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(34, 211, 238, 0.08)); color: #A78BFA; font-weight: 700; border-right: 3px solid #8B5CF6; }
+        .dark .admin-nav.active { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.1)); }
+        .bg-grid {
+            background-size: 50px 50px;
+            position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+            mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 80%);
+        }
+        .dark .bg-grid {
+            background-image: linear-gradient(to right, rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+        }
+        html { scroll-behavior: smooth; }
+        input, select, textarea { transition: all 0.3s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen transition-colors duration-300 font-sans">
-    <div class="max-w-7xl mx-auto p-4 md:p-8">
-        
-        <div class="bg-white/70 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-4 px-6 flex justify-between items-center mb-8 shadow-sm border border-gray-200 dark:border-white/5">
-            <div class="font-extrabold text-xl text-indigo-500 flex items-center gap-3">
-                <i class="fas fa-ticket-alt text-2xl"></i> Promo Code Management
+<body class="bg-gray-50 dark:bg-dark-900 text-gray-800 dark:text-gray-200 min-h-screen transition-colors duration-300 font-sans flex overflow-x-hidden">
+    <div class="bg-grid"></div>
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-gray-900/50 dark:bg-black/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+    <aside id="sidebar" class="w-64 bg-white/95 dark:bg-dark-800/95 backdrop-blur-md border-r border-gray-200 dark:border-white/5 flex flex-col h-screen fixed left-0 top-0 z-50 shadow-2xl md:shadow-lg transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="h-20 flex items-center justify-between px-6 border-b border-gray-100 dark:border-white/5">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-shield-halved text-2xl text-brand-primary"></i>
+                <div>
+                    <span class="font-extrabold text-lg tracking-tight text-gray-900 dark:text-white block leading-tight">Weadev</span>
+                    <span class="text-[10px] font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">v1.7 Admin</span>
+                </div>
             </div>
-            <a href="../admin.php" class="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2">
-                <i class="fas fa-arrow-left"></i> Back to Core
-            </a>
+            <button id="close-sidebar-btn" class="md:hidden text-gray-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
         </div>
 
+        <nav class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+            <p class="px-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Overview</p>
+            <a href="../admin.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard
+            </a>
+
+            <p class="px-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mt-6 mb-2">Management</p>
+            <a href="users.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-users-gear w-5 text-center"></i> User Management
+            </a>
+            <a href="offers.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-clipboard-check w-5 text-center"></i> Offer Approval
+            </a>
+            <a href="withdrawals.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-money-bill-transfer w-5 text-center"></i> Withdrawals
+            </a>
+            <a href="lottery.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-ticket w-5 text-center"></i> Lottery
+            </a>
+            <a href="admin_coupon.php" class="admin-nav active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-ticket-simple w-5 text-center"></i> Coupon Codes
+            </a>
+
+            <p class="px-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mt-6 mb-2">Configuration</p>
+            <a href="settings.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-gear w-5 text-center"></i> Settings
+            </a>
+            <a href="ad_setup.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-rectangle-ad w-5 text-center"></i> Ad Setup
+            </a>
+        </nav>
+        <div class="p-4 border-t border-gray-100 dark:border-white/5 space-y-2">
+            <a href="../index.php" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-brand-primary/10 hover:text-brand-primary dark:hover:bg-brand-primary/20 dark:hover:text-brand-primary rounded-xl transition-all font-bold text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-eye"></i> View Site
+            </a>
+            <a href="../admin.php?logout=1" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 rounded-xl transition-all font-bold text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+    <div class="flex-1 md:ml-64 flex flex-col min-h-screen relative z-10 w-full animate-[fadeInUp_0.4s_ease-out]">
+        <header class="h-20 bg-white/80 dark:bg-dark-800/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shadow-sm">
+            <div class="md:hidden flex items-center gap-3">
+                <button id="mobile-menu-btn" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-dark-900 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+                <div class="font-extrabold text-xl text-brand-primary flex items-center gap-2">
+                    <i class="fas fa-shield-halved"></i> <span class="truncate max-w-[120px]">Weadev</span>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center gap-3">
+                <h1 class="text-xl font-extrabold text-gray-900 dark:text-white">Coupon Codes</h1>
+                <span class="text-xs font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-dark-900 px-2.5 py-1 rounded-lg">v1.7</span>
+            </div>
+            <div class="flex items-center gap-3 md:gap-4 ml-auto">
+                <div class="hidden sm:flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                    <i class="fas fa-users"></i> <?php echo number_format($totalUsers); ?> Users
+                </div>
+                <button id="theme-toggle" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-900 text-gray-600 dark:text-gray-400 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-dark-700 transition-all">
+                    <i id="theme-toggle-dark-icon" class="fa-solid fa-moon hidden"></i>
+                    <i id="theme-toggle-light-icon" class="fa-solid fa-sun hidden"></i>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-primary to-brand-accent flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-dark-800">
+                    <i class="fas fa-crown text-sm"></i>
+                </div>
+            </div>
+        </header>
+        <main class="flex-1 p-4 sm:p-6 md:p-8">
+            <div class="w-full max-w-6xl mx-auto space-y-8">
+
         <?php if (isset($success)): ?>
-            <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-6 py-4 rounded-xl mb-8 font-bold flex items-center gap-3"><i class="fas fa-check-circle text-2xl"></i> <?php echo $success; ?></div>
+        <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-5 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 shadow-sm"><i class="fas fa-check-circle text-lg"></i> <?php echo $success; ?></div>
         <?php endif; ?>
         <?php if (isset($error)): ?>
-            <div class="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-6 py-4 rounded-xl mb-8 font-bold flex items-center gap-3"><i class="fas fa-exclamation-triangle text-2xl"></i> <?php echo $error; ?></div>
+        <div class="bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 px-5 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 shadow-sm"><i class="fas fa-circle-exclamation text-lg"></i> <?php echo $error; ?></div>
         <?php endif; ?>
 
         <?php
@@ -159,7 +277,7 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $lastSent = (int)(getSetting('auto_coupon_last_sent') ?: 0);
             $lastCode = getSetting('auto_coupon_last_code') ?: 'None yet';
         ?>
-        <div class="bg-white/70 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-xl border border-gray-200 dark:border-white/5">
+        <div class="bg-white/70 dark:bg-dark-800/80 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-xl border border-gray-200 dark:border-white/5">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div>
                     <p class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 mb-1">Telegram Automation</p>
@@ -177,46 +295,46 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <form method="POST" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <input type="hidden" name="action" value="save_auto_coupon_settings">
 
-                <label class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10">
+                <label class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10">
                     <input type="checkbox" name="auto_coupon_enabled" value="1" <?php echo $autoEnabled ? 'checked' : ''; ?> class="w-5 h-5 accent-orange-500">
                     <span class="font-bold">Enable Auto Drops</span>
                 </label>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Telegram Channel ID / @username</label>
-                    <input type="text" name="auto_coupon_channel" value="<?php echo htmlspecialchars(getSetting('auto_coupon_channel') ?: ''); ?>" placeholder="@yourchannel or -1001234567890" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="text" name="auto_coupon_channel" value="<?php echo htmlspecialchars(getSetting('auto_coupon_channel') ?: ''); ?>" placeholder="@yourchannel or -1001234567890" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Code Prefix</label>
-                    <input type="text" name="auto_coupon_prefix" value="<?php echo htmlspecialchars(getSetting('auto_coupon_prefix') ?: 'DROP'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold uppercase">
+                    <input type="text" name="auto_coupon_prefix" value="<?php echo htmlspecialchars(getSetting('auto_coupon_prefix') ?: 'DROP'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold uppercase">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Fixed Reward</label>
-                    <input type="number" step="0.00000001" name="auto_coupon_reward" value="<?php echo htmlspecialchars(getSetting('auto_coupon_reward') ?: '10'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="number" step="0.00000001" name="auto_coupon_reward" value="<?php echo htmlspecialchars(getSetting('auto_coupon_reward') ?: '10'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Max Claims</label>
-                    <input type="number" min="1" name="auto_coupon_max_uses" value="<?php echo htmlspecialchars(getSetting('auto_coupon_max_uses') ?: '50'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="number" min="1" name="auto_coupon_max_uses" value="<?php echo htmlspecialchars(getSetting('auto_coupon_max_uses') ?: '50'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Expire After Hours</label>
-                    <input type="number" min="0" name="auto_coupon_expire_hours" value="<?php echo htmlspecialchars(getSetting('auto_coupon_expire_hours') ?: '24'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="number" min="0" name="auto_coupon_expire_hours" value="<?php echo htmlspecialchars(getSetting('auto_coupon_expire_hours') ?: '24'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                     <p class="text-[10px] text-gray-400 mt-1">Use 0 for no expiry.</p>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Auto Interval Minutes</label>
-                    <input type="number" min="1" name="auto_coupon_interval_minutes" value="<?php echo htmlspecialchars(getSetting('auto_coupon_interval_minutes') ?: '60'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="number" min="1" name="auto_coupon_interval_minutes" value="<?php echo htmlspecialchars(getSetting('auto_coupon_interval_minutes') ?: '60'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Requirement</label>
                     <?php $autoReq = getSetting('auto_coupon_req_offer_type') ?: 'none'; ?>
-                    <select name="auto_coupon_req_offer_type" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <select name="auto_coupon_req_offer_type" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                         <option value="none" <?php echo $autoReq === 'none' ? 'selected' : ''; ?>>No Requirement</option>
                         <option value="count" <?php echo $autoReq === 'count' ? 'selected' : ''; ?>>Offers Completed</option>
                         <option value="value" <?php echo $autoReq === 'value' ? 'selected' : ''; ?>>Coins Earned</option>
@@ -225,13 +343,13 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Requirement Amount</label>
-                    <input type="number" step="0.00000001" name="auto_coupon_req_offer_amount" value="<?php echo htmlspecialchars(getSetting('auto_coupon_req_offer_amount') ?: '0'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <input type="number" step="0.00000001" name="auto_coupon_req_offer_amount" value="<?php echo htmlspecialchars(getSetting('auto_coupon_req_offer_amount') ?: '0'); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Requirement Timeframe</label>
                     <?php $autoTime = getSetting('auto_coupon_req_timeframe') ?: 'all_time'; ?>
-                    <select name="auto_coupon_req_timeframe" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <select name="auto_coupon_req_timeframe" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
                         <option value="all_time" <?php echo $autoTime === 'all_time' ? 'selected' : ''; ?>>All Time</option>
                         <option value="24_hours" <?php echo $autoTime === '24_hours' ? 'selected' : ''; ?>>Last 24 Hours</option>
                     </select>
@@ -239,18 +357,18 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Cron Secret</label>
-                    <input type="text" name="auto_coupon_secret" value="<?php echo htmlspecialchars($autoSecret); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-mono text-xs font-bold">
+                    <input type="text" name="auto_coupon_secret" value="<?php echo htmlspecialchars($autoSecret); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-mono text-xs font-bold">
                 </div>
 
                 <div class="md:col-span-2 xl:col-span-4">
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Telegram Message Template</label>
-                    <textarea name="auto_coupon_message" rows="4" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-semibold text-sm"><?php echo htmlspecialchars(getSetting('auto_coupon_message') ?: "🎁 <b>{site_name} Coupon Drop!</b>\n\nCode: <code>{code}</code>\nReward: <b>{reward} {currency}</b>\nClaims: <b>{max_uses}</b> users\nExpires: <b>{expires}</b>\n\nOpen the app and claim it from the Home page!"); ?></textarea>
+                    <textarea name="auto_coupon_message" rows="4" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-semibold text-sm"><?php echo htmlspecialchars(getSetting('auto_coupon_message') ?: "🎁 <b>{site_name} Coupon Drop!</b>\n\nCode: <code>{code}</code>\nReward: <b>{reward} {currency}</b>\nClaims: <b>{max_uses}</b> users\nExpires: <b>{expires}</b>\n\nOpen the app and claim it from the Home page!"); ?></textarea>
                     <p class="text-[11px] text-gray-500 mt-2 font-semibold">Available tags: {site_name}, {code}, {reward}, {currency}, {max_uses}, {expires}</p>
                 </div>
 
                 <div class="md:col-span-2 xl:col-span-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
                     <p class="text-xs font-bold text-blue-700 dark:text-blue-300 mb-2"><i class="fas fa-clock mr-1"></i> Cron URL</p>
-                    <input type="text" readonly value="<?php echo htmlspecialchars($cronUrl); ?>" class="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-blue-100 dark:border-blue-500/20 text-xs font-mono text-gray-600 dark:text-gray-300 select-all">
+                    <input type="text" readonly value="<?php echo htmlspecialchars($cronUrl); ?>" class="w-full px-3 py-2 rounded-lg bg-white dark:bg-dark-800 border border-blue-100 dark:border-blue-500/20 text-xs font-mono text-gray-600 dark:text-gray-300 select-all">
                     <p class="text-[11px] text-blue-600 dark:text-blue-300 mt-2">Set your hosting cron to hit this URL every 5 or 10 minutes. The script only posts when the interval has passed. Telegram posts include a Claim Now button.</p>
                     <p class="text-[11px] text-gray-500 mt-1">Last sent: <b><?php echo $lastSent ? date('Y-m-d H:i:s', $lastSent) : 'Never'; ?></b> | Last code: <b><?php echo htmlspecialchars($lastCode); ?></b></p>
                 </div>
@@ -265,27 +383,27 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div class="lg:col-span-1">
-                <form method="POST" class="bg-white/70 dark:bg-gray-800/60 backdrop-blur-md p-6 rounded-2xl shadow-xl border-t-4 border-t-indigo-500 border border-gray-200 dark:border-white/5">
+                <form method="POST" class="bg-white/70 dark:bg-dark-800/80 backdrop-blur-md p-6 rounded-2xl shadow-xl border-t-4 border-t-indigo-500 border border-gray-200 dark:border-white/5">
                     <input type="hidden" name="action" value="add_coupon">
                     <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i class="fas fa-plus-circle text-indigo-500"></i> Create New Coupon</h3>
                     
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Coupon Code</label>
-                            <input type="text" name="code" required placeholder="e.g. OFFER2026" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold uppercase">
+                            <input type="text" name="code" required placeholder="e.g. OFFER2026" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold uppercase">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Reward Amount (Balance)</label>
-                            <input type="number" step="0.0001" name="reward" required placeholder="10.00" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
+                            <input type="number" step="0.0001" name="reward" required placeholder="10.00" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Max Uses (Capacity)</label>
-                            <input type="number" name="max_uses" required value="100" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
+                            <input type="number" name="max_uses" required value="100" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
                         </div>
                         
                         <div class="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20">
                             <label class="block text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-2 uppercase tracking-wide"><i class="fas fa-shield-alt"></i> Offerwall Requirement Type</label>
-                            <select name="req_offer_type" onchange="toggleReqFields(this.value);" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
+                            <select name="req_offer_type" onchange="toggleReqFields(this.value);" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-indigo-200 dark:border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
                                 <option value="none">No Requirement (Free for all)</option>
                                 <option value="count">Number of Offers Completed</option>
                                 <option value="value">Total <?php echo $currency; ?> Earned</option>
@@ -293,11 +411,11 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <div id="req_amt_div" style="display:none;" class="mt-3">
                                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Required Amount / Count</label>
-                                <input type="number" step="0.0001" name="req_offer_amount" value="0" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
+                                <input type="number" step="0.0001" name="req_offer_amount" value="0" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold">
                             </div>
                             <div id="req_time_div" style="display:none;" class="mt-3">
                                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Requirement Timeframe</label>
-                                <select name="req_timeframe" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
+                                <select name="req_timeframe" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
                                     <option value="all_time">All Time (Lifetime)</option>
                                     <option value="24_hours">Last 24 Hours Only</option>
                                 </select>
@@ -306,7 +424,7 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Expiry Date (Optional)</label>
-                            <input type="datetime-local" name="expires_at" class="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
+                            <input type="datetime-local" name="expires_at" class="w-full px-4 py-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none font-bold text-sm">
                         </div>
                     </div>
 
@@ -317,13 +435,13 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
             <div class="lg:col-span-2">
-                <div class="bg-white/70 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-white/5 overflow-hidden">
+                <div class="bg-white/70 dark:bg-dark-800/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-white/5 overflow-hidden">
                     <div class="p-6 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                         <h3 class="text-lg font-bold"><i class="fas fa-list text-gray-400 mr-2"></i> Active & Past Coupons</h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">
+                            <thead class="bg-gray-50 dark:bg-dark-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">
                                 <tr>
                                     <th class="px-6 py-4">Code</th>
                                     <th class="px-6 py-4">Reward</th>
@@ -349,7 +467,7 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td class="px-6 py-4 font-bold text-gray-900 dark:text-white"><?php echo rtrim(rtrim(sprintf('%.4f', $c['reward']), '0'), '.'); ?></td>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-2">
-                                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 max-w-[50px]">
+                                                <div class="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-1.5 max-w-[50px]">
                                                     <div class="bg-indigo-500 h-1.5 rounded-full" style="width: <?php echo min(100, ($c['used_count'] / $c['max_uses']) * 100); ?>%"></div>
                                                 </div>
                                                 <span class="text-xs font-medium"><?php echo $c['used_count']; ?>/<?php echo $c['max_uses']; ?></span>
@@ -390,6 +508,41 @@ $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
         </div>
+
+            </div>
+        </main>
     </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+        function toggleSidebar() {
+            if (!sidebar) return;
+            sidebar.classList.toggle('-translate-x-full');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            } else {
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            }
+        }
+        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+        if (overlay) overlay.addEventListener('click', toggleSidebar);
+
+        const themeToggle = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-toggle-dark-icon');
+        const lightIcon = document.getElementById('theme-toggle-light-icon');
+        if (document.documentElement.classList.contains('dark')) { lightIcon.classList.remove('hidden'); } else { darkIcon.classList.remove('hidden'); }
+        if (themeToggle) themeToggle.addEventListener('click', function() {
+            darkIcon.classList.toggle('hidden');
+            lightIcon.classList.toggle('hidden');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('color-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+    </script>
 </body>
 </html>

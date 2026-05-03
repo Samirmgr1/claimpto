@@ -1,10 +1,17 @@
 <?php
+define('POSTBACK_MODE', true);
 require_once 'core/db.php';
 require_once 'core/functions.php';
 
 $secret = getSetting('secret_key');
-$IP = getUserIP(); 
+$IP = getUserIP();
+
+$allowed_ips_setting = getSetting('postback_allowed_ips');
 $allowed_ips = array('68.65.121.182');
+if (!empty($allowed_ips_setting)) {
+    $extra = array_map('trim', explode(',', $allowed_ips_setting));
+    $allowed_ips = array_merge($allowed_ips, $extra);
+}
 
 if (!in_array($IP, $allowed_ips)) {
     http_response_code(403);
