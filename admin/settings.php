@@ -514,6 +514,11 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                                         <input type="text" name="settings[bitcotask_api_token]" value="<?php echo htmlspecialchars(getSetting('bitcotask_api_token')); ?>" placeholder="Your Bitcotasks Bearer token" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-primary/50 text-gray-900 dark:text-white outline-none font-mono text-sm">
                                         <p class="text-[10px] text-amber-600 dark:text-amber-500 mt-1"><i class="fas fa-shield-alt"></i> Sent as the Authorization: Bearer header on every PTC request.</p>
                                     </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">BITCOTASKS SECRET KEY</label>
+                                        <input type="text" name="settings[bitcotask_secret_key]" value="<?php echo htmlspecialchars(getSetting('bitcotask_secret_key')); ?>" placeholder="Your Bitcotasks Secret Key (for postback signature verification)" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-primary/50 text-gray-900 dark:text-white outline-none font-mono text-sm">
+                                        <p class="text-[10px] text-red-500 dark:text-red-400 mt-1"><i class="fas fa-key"></i> Required for postback signature verification. Find it in Bitcotasks → My Apps → Edit.</p>
+                                    </div>
                                 </div>
                             </div>
                         </section>

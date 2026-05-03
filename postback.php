@@ -3,7 +3,7 @@ define('POSTBACK_MODE', true);
 require_once 'core/db.php';
 require_once 'core/functions.php';
 
-$secret = getSetting('secret_key');
+$secret = getSetting('bitcotask_secret_key');
 $IP = getUserIP();
 
 // Bitcotasks official IP (from docs: https://bitcotasks.com/documentations)
