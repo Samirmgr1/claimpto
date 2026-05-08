@@ -194,6 +194,18 @@ try {
             <button onclick="<?php echo $onClickAction; ?>" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all text-left">
                 <i class="fas fa-mouse-pointer w-5 text-center"></i> PTC Ads
             </button>
+            <?php 
+                $onClickAction = $isLoggedIn ? "loadContent('pages/load_games.php', this)" : "alert('🔒 Please Login or Register to access this menu.')"; 
+            ?>
+            <button onclick="<?php echo $onClickAction; ?>" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-pink-50 dark:hover:bg-pink-500/10 hover:text-pink-600 dark:hover:text-pink-400 transition-all text-left">
+                <i class="fas fa-gamepad w-5 text-center text-pink-500"></i> Games
+            </button>
+            <?php 
+                $onClickAction = $isLoggedIn ? "loadContent('pages/load_lottery.php', this)" : "alert('🔒 Please Login or Register to access this menu.')"; 
+            ?>
+            <button onclick="<?php echo $onClickAction; ?>" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:text-violet-600 dark:hover:text-violet-400 transition-all text-left">
+                <i class="fas fa-ticket w-5 text-center text-violet-500"></i> Lottery
+            </button>
             <?php if(!empty($extraMenus)): ?>
                 <p class="px-4 text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mt-6 mb-2">
                     <i class="fas fa-bolt"></i> Extra Earnings
