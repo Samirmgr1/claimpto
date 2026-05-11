@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'auto_coupon_req_offer_amount',
             'auto_coupon_req_timeframe',
             'auto_coupon_message',
+            'auto_coupon_btn_text',
             'auto_coupon_secret'
         ];
         foreach ($autoFields as $field) {
@@ -423,6 +424,12 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                     <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Telegram Message Template</label>
                     <textarea name="auto_coupon_message" rows="4" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-semibold text-sm"><?php echo htmlspecialchars(getSetting('auto_coupon_message') ?: "🎁 <b>{site_name} Coupon Drop!</b>\n\nCode: <code>{code}</code>\nReward: <b>{reward} {currency}</b>\nClaims: <b>{max_uses}</b> users\nExpires: <b>{expires}</b>\n\nOpen the app and claim it from the Home page!"); ?></textarea>
                     <p class="text-[11px] text-gray-500 mt-2 font-semibold">Available tags: {site_name}, {code}, {reward}, {currency}, {max_uses}, {expires}</p>
+                </div>
+
+                <div class="md:col-span-2 xl:col-span-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Button Text</label>
+                    <input type="text" name="auto_coupon_btn_text" value="<?php echo htmlspecialchars(getSetting('auto_coupon_btn_text') ?: ''); ?>" placeholder="🎁 Claim Coupon" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-bold">
+                    <p class="text-[11px] text-gray-500 mt-1">Custom text for the inline button on Telegram coupon posts. Leave empty for default.</p>
                 </div>
 
                 <div class="md:col-span-2 xl:col-span-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">

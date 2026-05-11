@@ -79,7 +79,7 @@ if (!function_exists('couponTelegramSendMessage')) {
         // Build Mini App url button (web_app type not supported in channels)
         $botUsername = trim((string)couponGetSetting('telegram_bot_username', ''));
         $appShort = trim((string)couponGetSetting('telegram_app_shortname', ''));
-        $btnAppText = couponGetSetting('tg_btn_app_text', '') ?: '🚀 Open App';
+        $btnAppText = couponGetSetting('auto_coupon_btn_text', '') ?: couponGetSetting('tg_btn_app_text', '') ?: '🎁 Claim Coupon';
         if ($botUsername !== '' && $appShort !== '') {
             $miniAppUrl = 'https://t.me/' . ltrim($botUsername, '@') . '/' . $appShort;
             $postData['reply_markup'] = json_encode([
