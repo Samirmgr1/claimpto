@@ -34,16 +34,20 @@ try {
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_profile'])) {
-        $newUsername = trim($_POST['username'] ?? '');
         $newWallet = trim($_POST['wallet'] ?? '');
-        $newBalance = (float)($_POST['balance'] ?? 0);
-        $newTelegramId = trim($_POST['telegram_id'] ?? '');
+        $newBalance = $_POST['balance'];
         $newBanned = isset($_POST['is_banned']) ? 1 : 0;
         $newBanReason = trim($_POST['ban_reason'] ?? '');
 
+        // Fetch current balance to preserve if not changed
+        $curStmt = $pdo->prepare("SELECT balance FROM users WHERE id = ?");
+        $curStmt->execute([$uid]);
+        $curBalance = $curStmt->fetchColumn();
+        $finalBalance = ($newBalance !== '' && $newBalance !== null) ? (float)$newBalance : (float)$curBalance;
+
         try {
-            $stmt = $pdo->prepare("UPDATE users SET username = ?, wallet = ?, balance = ?, telegram_id = ?, is_banned = ?, ban_reason = ? WHERE id = ? AND is_admin = 0");
-            $stmt->execute([$newUsername ?: null, $newWallet ?: null, $newBalance, $newTelegramId ?: null, $newBanned, $newBanReason ?: null, $uid]);
+            $stmt = $pdo->prepare("UPDATE users SET wallet = ?, balance = ?, is_banned = ?, ban_reason = ? WHERE id = ? AND is_admin = 0");
+            $stmt->execute([$newWallet ?: null, $finalBalance, $newBanned, $newBanReason ?: null, $uid]);
             $success = "User profile updated successfully!";
         } catch (Exception $e) {
             $error = "Failed to update user profile.";
@@ -332,7 +336,7 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Username</label>
-                                <input type="text" name="username" value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium text-sm focus:ring-2 focus:ring-blue-500/50 transition-all">
+                                <input type="text" value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>" disabled class="w-full px-4 py-3 bg-gray-100 dark:bg-dark-700 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium text-sm text-gray-500 cursor-not-allowed">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Balance (<?php echo htmlspecialchars($currencyName); ?>)</label>
@@ -344,7 +348,7 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Telegram ID</label>
-                                <input type="text" name="telegram_id" value="<?php echo htmlspecialchars($user['telegram_id'] ?? ''); ?>" placeholder="Not linked" class="w-full px-4 py-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium text-sm focus:ring-2 focus:ring-blue-500/50 transition-all">
+                                <input type="text" value="<?php echo htmlspecialchars($user['telegram_id'] ?? ''); ?>" placeholder="Not linked" disabled class="w-full px-4 py-3 bg-gray-100 dark:bg-dark-700 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium text-sm text-gray-500 cursor-not-allowed">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">IP Address</label>
@@ -374,13 +378,13 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                             <button type="submit" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
-                            <form method="POST" class="inline" onsubmit="return confirm('Reset balance to 0?')">
-                                <input type="hidden" name="reset_balance" value="1">
-                                <button type="submit" class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25">
-                                    <i class="fas fa-rotate-left"></i> Reset Balance
-                                </button>
-                            </form>
                         </div>
+                    </form>
+                    <form method="POST" class="mt-3" onsubmit="return confirm('Reset balance to 0?')">
+                        <input type="hidden" name="reset_balance" value="1">
+                        <button type="submit" class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25">
+                            <i class="fas fa-rotate-left"></i> Reset Balance
+                        </button>
                     </form>
                 </div>
 
