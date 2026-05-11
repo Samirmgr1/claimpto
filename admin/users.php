@@ -355,18 +355,23 @@ try {
                                             <span class="text-xs text-gray-500 dark:text-gray-400"><?php echo date('M d, Y', strtotime($u['created_at'])); ?></span>
                                         </td>
                                         <td class="py-3 text-right">
-                                            <?php if ($u['is_banned']): ?>
+                                            <div class="flex items-center justify-end gap-2">
+                                                <a href="user_profile.php?id=<?php echo $u['id']; ?>" class="px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-lg text-xs font-bold transition-colors">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <?php if ($u['is_banned']): ?>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Unban this user?')">
                                                     <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                                                     <button type="submit" name="unban_user" value="1" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors">
                                                         <i class="fas fa-unlock"></i> Unban
                                                     </button>
                                                 </form>
-                                            <?php else: ?>
+                                                <?php else: ?>
                                                 <button onclick="openBanModal(<?php echo $u['id']; ?>, '<?php echo addslashes(htmlspecialchars($u['username'])); ?>')" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
                                                     <i class="fas fa-ban"></i> Ban
                                                 </button>
-                                            <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
