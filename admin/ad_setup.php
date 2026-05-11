@@ -203,6 +203,11 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                                 <input type="number" name="settings[faucet_reward_max]" value="<?php echo htmlspecialchars(getSetting('faucet_reward_max') ?: '50'); ?>" class="w-full px-4 py-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium" min="0">
                                 <p class="text-[10px] text-gray-500 mt-1">Maximum random reward per hourly faucet claim.</p>
                             </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">ADS TO WATCH</label>
+                                <input type="number" name="settings[faucet_required_ads]" value="<?php echo htmlspecialchars(getSetting('faucet_required_ads') ?: '2'); ?>" class="w-full px-4 py-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium" min="1" max="10">
+                                <p class="text-[10px] text-gray-500 mt-1">Number of ads user must watch before claiming faucet. Default 2.</p>
+                            </div>
                         </div>
                     </div>
 

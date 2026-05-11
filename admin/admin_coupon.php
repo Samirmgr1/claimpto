@@ -81,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $val = isset($_POST['coupon_ad_' . $net]) ? '1' : '0';
             updateSetting('coupon_ad_' . $net, $val);
         }
+        $reqAds = max(1, min(10, (int)($_POST['coupon_required_ads'] ?? 1)));
+        updateSetting('coupon_required_ads', (string)$reqAds);
         $success = "Coupon ad settings saved!";
     } elseif ($_POST['action'] === 'send_auto_coupon_now') {
         $result = couponCreateAutoCoupon(true);
@@ -288,7 +290,7 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
             <div class="mb-4">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-1">Monetization</p>
                 <h3 class="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2"><i class="fas fa-rectangle-ad text-emerald-500"></i> Coupon Page Ads</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Enable ad networks on the coupon claim page. One random enabled ad will be shown to users before claiming.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Enable ad networks on the coupon claim page. Users must watch the configured number of ads before claiming.</p>
             </div>
             <form method="POST">
                 <input type="hidden" name="action" value="save_coupon_ad_settings">
@@ -320,6 +322,11 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
                         </div>
                     </label>
                     <?php endforeach; ?>
+                </div>
+                <div class="mt-4 mb-4">
+                    <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">ADS TO WATCH BEFORE CLAIMING</label>
+                    <input type="number" name="coupon_required_ads" value="<?php echo htmlspecialchars(getSetting('coupon_required_ads') ?: '1'); ?>" class="w-32 px-4 py-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none font-medium" min="1" max="10">
+                    <p class="text-[10px] text-gray-500 mt-1">Number of ads user must watch before claiming a coupon. Default 1.</p>
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-500/20">

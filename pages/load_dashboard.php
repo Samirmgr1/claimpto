@@ -169,7 +169,8 @@ if (isset($_GET['claim_home_faucet'])) {
         $faucet_cooldown = (int)(getSetting('faucet_cooldown') ?: 60);
         $posted_token = $_POST['faucet_token'] ?? '';
         if (empty($_SESSION['home_faucet_token']) || !hash_equals($_SESSION['home_faucet_token'], $posted_token)) {
-            echo json_encode(['status' => 'error', 'msg' => 'Please watch the 2 video ads first.']);
+            $faucetReqAds = max(1, (int)(getSetting('faucet_required_ads') ?: 2));
+            echo json_encode(['status' => 'error', 'msg' => 'Please watch the ' . $faucetReqAds . ' video ad(s) first.']);
             exit;
         }
         $faucet_min = (int)(getSetting('faucet_reward_min') ?: 1);
@@ -313,6 +314,7 @@ foreach ($coupon_ad_networks as $net) {
 }
 shuffle($coupon_ads);
 $coupon_ads_count = count($coupon_ads);
+$coupon_required_ads = max(1, (int)(getSetting('coupon_required_ads') ?: 1));
 if ($coupon_ads_count > 0) {
     $_SESSION['home_coupon_ad_token'] = bin2hex(random_bytes(16));
 }
@@ -432,6 +434,7 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
     }
     $home_faucet_token = $_SESSION['home_faucet_token'] ?? '';
     $home_faucet_ads_count = count($home_faucet_ads);
+    $faucet_required_ads = max(1, (int)(getSetting('faucet_required_ads') ?: 2));
     ?>
 
     <?php if($faucet_enabled): ?>
@@ -449,7 +452,7 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
                         <h3 class="font-black text-white text-xl tracking-tight">Hourly Faucet</h3>
                         <p class="text-indigo-100 text-sm font-semibold mt-1">Claim free points every hour</p>
                     </div>
-                    <?php if($home_faucet_ads_count >= 2): ?>
+                    <?php if($home_faucet_ads_count >= $faucet_required_ads): ?>
                     <button id="home-faucet-btn" type="button" onclick="window.claimHomeFaucet(event)" class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white text-indigo-700 font-black text-sm shadow-lg shadow-black/20 active:scale-95 hover:bg-cyan-50 transition-all flex items-center justify-center gap-2">
                         <i class="fas fa-video"></i>
                         <span>Claim Now (<?php echo $faucet_reward_label; ?> pts)</span>
@@ -457,11 +460,11 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
                     <?php else: ?>
                     <button id="home-faucet-btn" type="button" disabled class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white/20 text-white/60 font-black text-sm shadow-lg flex items-center justify-center gap-2 cursor-not-allowed">
                         <i class="fas fa-circle-exclamation"></i>
-                        <span>Need 2 Ads ON</span>
+                        <span>Need <?php echo $faucet_required_ads; ?> Ads ON</span>
                     </button>
                     <?php endif; ?>
                 </div>
-                <div id="home-faucet-msg" class="relative mt-3 text-xs font-bold text-cyan-100 min-h-[18px]"><?php echo $home_faucet_ads_count >= 2 ? '' : 'Turn ON at least 2 faucet video ads in Ad Setup.'; ?></div>
+                <div id="home-faucet-msg" class="relative mt-3 text-xs font-bold text-cyan-100 min-h-[18px]"><?php echo $home_faucet_ads_count >= $faucet_required_ads ? '' : 'Turn ON at least ' . $faucet_required_ads . ' faucet video ads in Ad Setup.'; ?></div>
             </div>
         </div>
         <?php else: ?>
@@ -522,12 +525,12 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
                             <?php if ($coupon_ads_count > 0): ?>
                             <button id="home_coupon_btn" type="submit" class="h-14 px-6 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
                                 <i class="fas fa-video"></i>
-                                <span>Watch Ad & Claim</span>
+                                <span>Redeem Code</span>
                             </button>
                             <?php else: ?>
                             <button id="home_coupon_btn" type="submit" class="h-14 px-6 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
                                 <i class="fas fa-bolt"></i>
-                                <span>Claim Code</span>
+                                <span>Redeem Code</span>
                             </button>
                             <?php endif; ?>
                         </div>
@@ -678,7 +681,8 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
 
     window.couponAds = <?php echo json_encode($coupon_ads ?? []); ?>;
     window.couponAdToken = <?php echo json_encode($home_coupon_ad_token ?? ''); ?>;
-    window.couponAdWatched = false;
+    window.couponAdWatched = 0;
+    window.couponRequiredAds = <?php echo (int)($coupon_required_ads ?? 1); ?>;
 
     window.couponAdLoadScript = function(id, src, attrs) {
         return new Promise(function(resolve, reject) {
@@ -763,18 +767,32 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
         });
     };
 
-    window.couponAdShowOne = function() {
+    window.couponAdShowAll = function() {
         return new Promise(function(resolve) {
             if (!window.couponAds || window.couponAds.length === 0) { resolve(); return; }
-            var shuffled = window.couponAds.slice().sort(function(){ return Math.random() - 0.5; });
+            var required = window.couponRequiredAds || 1;
+            var completed = 0;
             var attempted = 0;
+            var shuffled = window.couponAds.slice().sort(function(){ return Math.random() - 0.5; });
+
             var tryNext = function() {
-                if (attempted >= shuffled.length) { resolve(); return; }
+                if (completed >= required) {
+                    window.couponAdWatched = completed;
+                    resolve();
+                    return;
+                }
+                if (attempted >= shuffled.length) {
+                    window.couponAdWatched = completed;
+                    resolve();
+                    return;
+                }
                 var ad = shuffled[attempted];
                 attempted++;
+                var msgEl = document.getElementById('home_coupon_msg');
+                if (msgEl) msgEl.innerHTML = '<span class="text-orange-400"><i class="fas fa-video"></i> Watching ad ' + (completed + 1) + ' of ' + required + '...</span>';
                 window.couponAdPlay(ad).then(function(){
-                    window.couponAdWatched = true;
-                    resolve();
+                    completed++;
+                    setTimeout(tryNext, 650);
                 }).catch(function(){
                     setTimeout(tryNext, 500);
                 });
@@ -839,10 +857,11 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
             });
         };
 
-        if (window.couponAds && window.couponAds.length > 0 && !window.couponAdWatched) {
+        var couponReq = window.couponRequiredAds || 1;
+        if (window.couponAds && window.couponAds.length > 0 && window.couponAdWatched < couponReq) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading Ad...</span>';
-            if (msg) msg.innerHTML = '<span class="text-orange-400"><i class="fas fa-video"></i> Watch the ad to claim your coupon...</span>';
-            window.couponAdShowOne().then(function(){
+            if (msg) msg.innerHTML = '<span class="text-orange-400"><i class="fas fa-video"></i> Watch ' + couponReq + ' ad(s) to claim your coupon...</span>';
+            window.couponAdShowAll().then(function(){
                 if (msg) msg.innerHTML = '';
                 doRedeem();
             });
@@ -972,7 +991,8 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
         }
         var btn = document.getElementById('home-faucet-btn');
         if (!btn || btn.disabled) return false;
-        if (!window.homeFaucetAds || window.homeFaucetAds.length < 2) {
+        var faucetRequiredAds = <?php echo (int)($faucet_required_ads ?? 2); ?>;
+        if (!window.homeFaucetAds || window.homeFaucetAds.length < faucetRequiredAds) {
             window.homeFaucetSetMsg('');
             return false;
         }
@@ -1018,7 +1038,7 @@ $home_coupon_ad_token = $_SESSION['home_coupon_ad_token'] ?? '';
         };
 
         var tryNextAd = function() {
-            if (completed >= 2) { creditReward(false); return; }
+            if (completed >= faucetRequiredAds) { creditReward(false); return; }
             if (attempted >= shuffledAds.length) {
                 creditReward(true);
                 return;
