@@ -8,6 +8,33 @@ if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
     exit();
 }
 
+// Create broadcast_logs table
+$pdo->exec("CREATE TABLE IF NOT EXISTS broadcast_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message TEXT NOT NULL,
+    include_button TINYINT(1) DEFAULT 0,
+    total INT DEFAULT 0,
+    sent INT DEFAULT 0,
+    failed INT DEFAULT 0,
+    failed_ids TEXT,
+    status ENUM('running','completed','stopped') DEFAULT 'running',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Helper: build reply markup
+function buildReplyMarkup($includeButton) {
+    if (!$includeButton) return null;
+    $botUsername = trim((string)getSetting('telegram_bot_username'));
+    $appShort = trim((string)getSetting('telegram_app_shortname'));
+    $btnText = getSetting('tg_btn_app_text') ?: '🚀 Open App';
+    if ($botUsername !== '' && $appShort !== '') {
+        $miniAppUrl = 'https://t.me/' . ltrim($botUsername, '@') . '/' . $appShort;
+        return json_encode(['inline_keyboard' => [[ ['text' => $btnText, 'url' => $miniAppUrl] ]]]);
+    }
+    return null;
+}
+
 // AJAX: Send broadcast in batches
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
@@ -24,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             exit;
         }
 
-        // Get all users with telegram_id
         $stmt = $pdo->query("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL AND telegram_id != '' AND is_banned = 0");
         $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -33,23 +59,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             exit;
         }
 
-        // Store broadcast job in session
-        $jobId = uniqid('bc_');
+        $includeButton = !empty($_POST['include_button']);
+
+        // Save to DB
+        $ins = $pdo->prepare("INSERT INTO broadcast_logs (message, include_button, total, sent, failed, failed_ids, status) VALUES (?, ?, ?, 0, 0, '[]', 'running')");
+        $ins->execute([$message, $includeButton ? 1 : 0, count($users)]);
+        $dbId = $pdo->lastInsertId();
+
+        // Store in session
+        $jobId = 'bc_' . $dbId;
         $_SESSION['broadcast_' . $jobId] = [
+            'db_id' => $dbId,
             'message' => $message,
-            'include_button' => !empty($_POST['include_button']),
+            'include_button' => $includeButton,
             'users' => $users,
             'total' => count($users),
             'sent' => 0,
             'failed' => 0,
             'failed_ids' => [],
             'offset' => 0,
-            'status' => 'running',
-            'started_at' => time(),
-            'retry_mode' => false
+            'status' => 'running'
         ];
 
-        echo json_encode(['success' => true, 'job_id' => $jobId, 'total' => count($users)]);
+        echo json_encode(['success' => true, 'job_id' => $jobId, 'total' => count($users), 'db_id' => $dbId]);
         exit;
     }
 
@@ -63,24 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
         $job = &$_SESSION[$key];
         $botToken = getSetting('telegram_bot_token');
-        $batchSize = (int)($_POST['batch_size'] ?? 25);
-        $batchSize = max(1, min(30, $batchSize));
-
-        // Build reply markup
-        $replyMarkup = null;
-        if ($job['include_button']) {
-            $botUsername = trim((string)getSetting('telegram_bot_username'));
-            $appShort = trim((string)getSetting('telegram_app_shortname'));
-            $btnText = getSetting('tg_btn_app_text') ?: '🚀 Open App';
-            if ($botUsername !== '' && $appShort !== '') {
-                $miniAppUrl = 'https://t.me/' . ltrim($botUsername, '@') . '/' . $appShort;
-                $replyMarkup = json_encode([
-                    'inline_keyboard' => [[
-                        ['text' => $btnText, 'url' => $miniAppUrl]
-                    ]]
-                ]);
-            }
-        }
+        $batchSize = max(1, min(30, (int)($_POST['batch_size'] ?? 25)));
+        $replyMarkup = buildReplyMarkup($job['include_button']);
 
         $users = $job['users'];
         $offset = $job['offset'];
@@ -96,9 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 'parse_mode' => 'HTML',
                 'disable_web_page_preview' => true
             ];
-            if ($replyMarkup) {
-                $postFields['reply_markup'] = $replyMarkup;
-            }
+            if ($replyMarkup) $postFields['reply_markup'] = $replyMarkup;
 
             $ch = curl_init("https://api.telegram.org/bot{$botToken}/sendMessage");
             curl_setopt_array($ch, [
@@ -115,11 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             if ($httpCode == 200) {
                 $batchSent++;
             } else {
-                // Check for rate limit (429)
                 $respData = json_decode($response, true);
                 if ($httpCode == 429 && isset($respData['parameters']['retry_after'])) {
                     $retryAfter = (int)$respData['parameters']['retry_after'];
-                    // Don't count this as failed, we'll retry
                     $job['failed_ids'][] = $telegramId;
                 } else {
                     $batchFailed++;
@@ -137,6 +149,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             $job['status'] = 'completed';
         }
 
+        // Update DB
+        $upd = $pdo->prepare("UPDATE broadcast_logs SET sent = ?, failed = ?, failed_ids = ?, status = ?" . ($done ? ", completed_at = NOW()" : "") . " WHERE id = ?");
+        $upd->execute([$job['sent'], $job['failed'], json_encode($job['failed_ids']), $done ? 'completed' : 'running', $job['db_id']]);
+
         echo json_encode([
             'success' => true,
             'sent' => $job['sent'],
@@ -150,48 +166,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         exit;
     }
 
-    if ($_POST['ajax_action'] === 'retry_failed') {
+    if ($_POST['ajax_action'] === 'stop_broadcast') {
         $jobId = $_POST['job_id'] ?? '';
         $key = 'broadcast_' . $jobId;
-        if (empty($jobId) || !isset($_SESSION[$key])) {
-            echo json_encode(['success' => false, 'error' => 'Invalid or expired broadcast job.']);
+        if (!empty($jobId) && isset($_SESSION[$key])) {
+            $job = &$_SESSION[$key];
+            $job['status'] = 'stopped';
+            $pdo->prepare("UPDATE broadcast_logs SET status = 'stopped', completed_at = NOW(), sent = ?, failed = ?, failed_ids = ? WHERE id = ?")->execute([$job['sent'], $job['failed'], json_encode($job['failed_ids']), $job['db_id']]);
+        }
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($_POST['ajax_action'] === 'retry_failed') {
+        $jobId = $_POST['job_id'] ?? '';
+        $dbId = (int)($_POST['db_id'] ?? 0);
+        $key = 'broadcast_' . $jobId;
+
+        // Load from session or DB
+        $message = '';
+        $includeButton = false;
+        $failedIds = [];
+        $dbRowId = 0;
+        $totalCount = 0;
+        $sentCount = 0;
+        $failedCount = 0;
+
+        if (!empty($jobId) && isset($_SESSION[$key])) {
+            $job = &$_SESSION[$key];
+            $message = $job['message'];
+            $includeButton = $job['include_button'];
+            $failedIds = $job['failed_ids'];
+            $dbRowId = $job['db_id'];
+            $totalCount = $job['total'];
+            $sentCount = $job['sent'];
+            $failedCount = $job['failed'];
+        } elseif ($dbId > 0) {
+            $row = $pdo->prepare("SELECT * FROM broadcast_logs WHERE id = ?");
+            $row->execute([$dbId]);
+            $log = $row->fetch(PDO::FETCH_ASSOC);
+            if (!$log) {
+                echo json_encode(['success' => false, 'error' => 'Broadcast not found.']);
+                exit;
+            }
+            $message = $log['message'];
+            $includeButton = (bool)$log['include_button'];
+            $failedIds = json_decode($log['failed_ids'], true) ?: [];
+            $dbRowId = $log['id'];
+            $totalCount = $log['total'];
+            $sentCount = $log['sent'];
+            $failedCount = $log['failed'];
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid broadcast job.']);
             exit;
         }
 
-        $job = &$_SESSION[$key];
-        if (empty($job['failed_ids'])) {
-            echo json_encode(['success' => true, 'message' => 'No failed messages to retry.', 'retried' => 0]);
+        if (empty($failedIds)) {
+            echo json_encode(['success' => true, 'message' => 'No failed messages to retry.', 'retried' => 0, 'still_failed' => 0, 'sent' => $sentCount, 'failed' => $failedCount, 'total' => $totalCount]);
             exit;
         }
 
         $botToken = getSetting('telegram_bot_token');
-        $replyMarkup = null;
-        if ($job['include_button']) {
-            $botUsername = trim((string)getSetting('telegram_bot_username'));
-            $appShort = trim((string)getSetting('telegram_app_shortname'));
-            $btnText = getSetting('tg_btn_app_text') ?: '🚀 Open App';
-            if ($botUsername !== '' && $appShort !== '') {
-                $miniAppUrl = 'https://t.me/' . ltrim($botUsername, '@') . '/' . $appShort;
-                $replyMarkup = json_encode([
-                    'inline_keyboard' => [[
-                        ['text' => $btnText, 'url' => $miniAppUrl]
-                    ]]
-                ]);
-            }
-        }
+        $replyMarkup = buildReplyMarkup($includeButton);
 
         $retried = 0;
         $stillFailed = [];
-        foreach ($job['failed_ids'] as $telegramId) {
+        foreach ($failedIds as $telegramId) {
             $postFields = [
                 'chat_id' => $telegramId,
-                'text' => $job['message'],
+                'text' => $message,
                 'parse_mode' => 'HTML',
                 'disable_web_page_preview' => true
             ];
-            if ($replyMarkup) {
-                $postFields['reply_markup'] = $replyMarkup;
-            }
+            if ($replyMarkup) $postFields['reply_markup'] = $replyMarkup;
 
             $ch = curl_init("https://api.telegram.org/bot{$botToken}/sendMessage");
             curl_setopt_array($ch, [
@@ -207,26 +254,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
             if ($httpCode == 200) {
                 $retried++;
-                $job['sent']++;
-                $job['failed']--;
+                $sentCount++;
+                $failedCount--;
             } else {
                 $stillFailed[] = $telegramId;
             }
 
-            if ($retried % 20 === 0) {
-                usleep(1500000); // 1.5s pause every 20 retries
-            }
+            if ($retried % 20 === 0 && $retried > 0) usleep(1500000);
         }
 
-        $job['failed_ids'] = $stillFailed;
+        // Update session if exists
+        if (!empty($jobId) && isset($_SESSION[$key])) {
+            $_SESSION[$key]['sent'] = $sentCount;
+            $_SESSION[$key]['failed'] = $failedCount;
+            $_SESSION[$key]['failed_ids'] = $stillFailed;
+        }
+
+        // Update DB
+        $pdo->prepare("UPDATE broadcast_logs SET sent = ?, failed = ?, failed_ids = ? WHERE id = ?")->execute([$sentCount, $failedCount, json_encode($stillFailed), $dbRowId]);
+
         echo json_encode([
             'success' => true,
             'retried' => $retried,
             'still_failed' => count($stillFailed),
-            'sent' => $job['sent'],
-            'failed' => $job['failed'],
-            'total' => $job['total']
+            'sent' => $sentCount,
+            'failed' => $failedCount,
+            'total' => $totalCount
         ]);
+        exit;
+    }
+
+    if ($_POST['ajax_action'] === 'delete_broadcast') {
+        $dbId = (int)($_POST['db_id'] ?? 0);
+        if ($dbId > 0) {
+            $pdo->prepare("DELETE FROM broadcast_logs WHERE id = ?")->execute([$dbId]);
+        }
+        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -237,6 +300,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 // Get stats
 $totalTgUsers = $pdo->query("SELECT COUNT(*) FROM users WHERE telegram_id IS NOT NULL AND telegram_id != '' AND is_banned = 0")->fetchColumn();
 $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+
+// Get broadcast history
+$historyStmt = $pdo->query("SELECT * FROM broadcast_logs ORDER BY created_at DESC LIMIT 20");
+$broadcastHistory = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $site_logo = getSetting('site_logo') ?: '';
 $botToken = getSetting('telegram_bot_token');
@@ -475,6 +542,73 @@ $botConfigured = !empty($botToken);
                     </div>
                 </div>
 
+                <!-- Broadcast History -->
+                <div class="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-[2rem] p-6 md:p-8 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-lg font-extrabold text-emerald-500 flex items-center gap-2"><i class="fas fa-clock-rotate-left"></i> Broadcast History</h3>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 dark:bg-dark-900 px-2.5 py-1 rounded-lg"><?php echo count($broadcastHistory); ?> recent</span>
+                    </div>
+                    <?php if (empty($broadcastHistory)): ?>
+                        <div class="text-center py-8">
+                            <i class="fas fa-inbox text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
+                            <p class="text-gray-400 font-bold">No broadcasts sent yet</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="space-y-3 max-h-[600px] overflow-y-auto">
+                        <?php foreach ($broadcastHistory as $log):
+                            $failedIds = json_decode($log['failed_ids'], true) ?: [];
+                            $failedCount = count($failedIds);
+                            $statusColor = $log['status'] === 'completed' ? 'emerald' : ($log['status'] === 'stopped' ? 'orange' : 'blue');
+                            $statusIcon = $log['status'] === 'completed' ? 'check-circle' : ($log['status'] === 'stopped' ? 'stop-circle' : 'circle-notch fa-spin');
+                            $msgPreview = htmlspecialchars(mb_substr(strip_tags($log['message']), 0, 120));
+                            if (mb_strlen(strip_tags($log['message'])) > 120) $msgPreview .= '...';
+                        ?>
+                            <div class="p-4 bg-gray-50 dark:bg-dark-900/50 border border-gray-200 dark:border-white/5 rounded-xl" id="history-<?php echo $log['id']; ?>">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-<?php echo $statusColor; ?>-100 text-<?php echo $statusColor; ?>-600 dark:bg-<?php echo $statusColor; ?>-500/20 dark:text-<?php echo $statusColor; ?>-400">
+                                                <i class="fas fa-<?php echo $statusIcon; ?>"></i> <?php echo ucfirst($log['status']); ?>
+                                            </span>
+                                            <span class="text-[10px] text-gray-400"><?php echo date('M d, Y H:i', strtotime($log['created_at'])); ?></span>
+                                            <?php if ($log['include_button']): ?>
+                                                <span class="text-[10px] text-blue-400"><i class="fas fa-square-arrow-up-right"></i> Button</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <p class="text-sm text-gray-700 dark:text-gray-300 font-medium truncate"><?php echo $msgPreview; ?></p>
+                                        <div class="flex items-center gap-4 mt-2 text-xs">
+                                            <span class="text-gray-500"><i class="fas fa-users text-blue-400"></i> <?php echo $log['total']; ?> total</span>
+                                            <span class="text-emerald-500 font-bold"><i class="fas fa-check"></i> <?php echo $log['sent']; ?> sent</span>
+                                            <?php if ($failedCount > 0): ?>
+                                                <span class="text-red-500 font-bold"><i class="fas fa-times"></i> <?php echo $failedCount; ?> failed</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <?php if ($failedCount > 0): ?>
+                                            <button onclick="retryFromHistory(<?php echo $log['id']; ?>, <?php echo $failedCount; ?>)" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-all" title="Retry failed">
+                                                <i class="fas fa-rotate-right"></i> Retry <?php echo $failedCount; ?>
+                                            </button>
+                                        <?php endif; ?>
+                                        <button onclick="resendBroadcast(<?php echo $log['id']; ?>)" class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold transition-all" title="Resend to all">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                        <button onclick="deleteBroadcast(<?php echo $log['id']; ?>)" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-xs font-bold transition-all" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="hidden mt-3 p-3 bg-white dark:bg-dark-800 rounded-lg border border-gray-100 dark:border-white/5" id="msg-<?php echo $log['id']; ?>">
+                                    <pre class="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono"><?php echo htmlspecialchars($log['message']); ?></pre>
+                                </div>
+                                <button onclick="toggleMsg(<?php echo $log['id']; ?>)" class="text-[10px] text-brand-primary font-bold mt-2 hover:underline">Show/Hide Full Message</button>
+                            </div>
+                        <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
                 <div class="text-center py-4 text-xs text-gray-400 dark:text-gray-600 font-medium">
                     <i class="fas fa-shield-halved text-brand-primary"></i> Weadev — Broadcast
                 </div>
@@ -591,6 +725,13 @@ $botConfigured = !empty($botToken);
         document.getElementById('btn-stop').classList.add('hidden');
         document.getElementById('progress-title').textContent = stopRequested ? 'Broadcast Stopped' : 'Broadcast Complete!';
 
+        if (stopRequested && currentJobId) {
+            const fd = new FormData();
+            fd.append('ajax_action', 'stop_broadcast');
+            fd.append('job_id', currentJobId);
+            fetch('broadcast.php', { method: 'POST', body: fd });
+        }
+
         const failCount = parseInt(document.getElementById('count-failed').textContent);
         if (failCount > 0) {
             document.getElementById('btn-retry').classList.remove('hidden');
@@ -653,6 +794,78 @@ $botConfigured = !empty($botToken);
         document.getElementById('btn-send').disabled = false;
         document.getElementById('btn-send').innerHTML = '<i class="fas fa-paper-plane"></i> Send Broadcast';
         document.getElementById('btn-stop').classList.add('hidden');
+    }
+
+    function toggleMsg(id) {
+        const el = document.getElementById('msg-' + id);
+        if (el) el.classList.toggle('hidden');
+    }
+
+    function retryFromHistory(dbId, failCount) {
+        if (!confirm('Retry sending to ' + failCount + ' failed recipients?')) return;
+        const btn = event.target.closest('button');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Retrying...';
+
+        const fd = new FormData();
+        fd.append('ajax_action', 'retry_failed');
+        fd.append('db_id', dbId);
+        fd.append('job_id', '');
+
+        fetch('broadcast.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.still_failed > 0) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-rotate-right"></i> Retry ' + data.still_failed;
+                        alert('Retried: ' + data.retried + ' sent, ' + data.still_failed + ' still failed.');
+                    } else {
+                        btn.remove();
+                        alert('All ' + data.retried + ' messages sent successfully!');
+                    }
+                    // Update the stats in the history card
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert(data.error || 'Retry failed.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-rotate-right"></i> Retry ' + failCount;
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rotate-right"></i> Retry ' + failCount;
+            });
+    }
+
+    function resendBroadcast(dbId) {
+        if (!confirm('Resend this broadcast to ALL users?')) return;
+        // Load the message from the history card's hidden pre
+        const msgEl = document.querySelector('#msg-' + dbId + ' pre');
+        if (msgEl) {
+            document.getElementById('broadcast-message').value = msgEl.textContent;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert('Message loaded into the editor. Click Send Broadcast when ready.');
+        }
+    }
+
+    function deleteBroadcast(dbId) {
+        if (!confirm('Delete this broadcast record permanently?')) return;
+        const fd = new FormData();
+        fd.append('ajax_action', 'delete_broadcast');
+        fd.append('db_id', dbId);
+
+        fetch('broadcast.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById('history-' + dbId);
+                    if (el) el.remove();
+                } else {
+                    alert('Delete failed.');
+                }
+            });
     }
 
     // Theme toggle
