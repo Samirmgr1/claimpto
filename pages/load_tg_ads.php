@@ -172,42 +172,67 @@ $adMeta = [
                     <h2 class="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="fas fa-play-circle text-brand-primary"></i> Watch Ads
                     </h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Earn 15–40 pts per ad</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Watch ads and earn rewards instantly</p>
                 </div>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-200 dark:border-emerald-500/20">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> <?php echo $totalAds; ?>/<?php echo $totalAds; ?> ready
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> <?php echo $totalAds; ?> Available
                 </span>
             </div>
         </div>
 
-        <!-- Ad Cards -->
-        <div class="space-y-3 mb-6">
+        <!-- Ad Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <?php foreach($ads as $ad): 
                 $meta = $adMeta[$ad['type']];
                 $limit_reached = ($ad['daily_limit'] > 0 && $ad['daily_used'] >= $ad['daily_limit']);
-                $cardBorder = $limit_reached ? 'border-gray-300 dark:border-white/10' : $meta['border'];
             ?>
-            <button <?php echo $limit_reached ? 'disabled' : 'onclick="watchAd_' . $ad['type'] . '(this)"'; ?> class="ad-card-<?php echo $ad['type']; ?> w-full flex items-center gap-4 p-4 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border <?php echo $cardBorder; ?> rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] text-left group <?php echo $limit_reached ? 'opacity-50 cursor-not-allowed' : ''; ?>">
-                <div class="w-11 h-11 <?php echo $limit_reached ? 'bg-gray-400' : $meta['iconBg']; ?> rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <i class="<?php echo $meta['icon']; ?> text-white text-base"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-extrabold text-gray-900 dark:text-white text-sm truncate"><?php echo htmlspecialchars($meta['label']); ?></h4>
-                    <div class="flex items-center gap-2 mt-0.5">
-                        <p class="text-[11px] text-gray-400 truncate"><?php echo htmlspecialchars($meta['desc']); ?></p>
+            <div class="ad-card-<?php echo $ad['type']; ?> relative overflow-hidden rounded-2xl border <?php echo $limit_reached ? 'border-gray-200 dark:border-white/5 opacity-60' : $meta['border']; ?> bg-white/90 dark:bg-dark-800/90 backdrop-blur-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                <!-- Card Top Accent -->
+                <div class="h-1 <?php echo $limit_reached ? 'bg-gray-300 dark:bg-gray-700' : $meta['iconBg']; ?>"></div>
+
+                <div class="p-5">
+                    <!-- Icon + Label Row -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 <?php echo $limit_reached ? 'bg-gray-400' : $meta['iconBg']; ?> rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                            <i class="<?php echo $meta['icon']; ?> text-white text-lg"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-extrabold text-gray-900 dark:text-white text-sm truncate"><?php echo htmlspecialchars($meta['label']); ?></h4>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5"><?php echo htmlspecialchars($meta['desc']); ?></p>
+                        </div>
+                    </div>
+
+                    <!-- Reward + Daily Limit Info -->
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Reward</p>
+                            <p class="text-lg font-black text-emerald-500">+<?php echo $ad['reward']; ?> <span class="text-xs font-bold text-gray-400">pts</span></p>
+                        </div>
                         <?php if($ad['daily_limit'] > 0): ?>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-md <?php echo $limit_reached ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500'; ?> font-bold"><?php echo $ad['daily_used']; ?>/<?php echo $ad['daily_limit']; ?></span>
+                        <div class="text-right">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Daily Limit</p>
+                            <p class="text-sm font-extrabold <?php echo $limit_reached ? 'text-red-500' : 'text-blue-500'; ?>"><?php echo $ad['daily_used']; ?> / <?php echo $ad['daily_limit']; ?></p>
+                        </div>
                         <?php endif; ?>
                     </div>
-                </div>
-                <div class="flex-shrink-0">
+
+                    <!-- Watch Button -->
                     <?php if($limit_reached): ?>
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg text-xs font-bold"><i class="fas fa-ban text-[10px]"></i> Done</span>
+                    <button disabled class="w-full py-3 rounded-xl bg-gray-100 dark:bg-dark-700 text-gray-400 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Limit Reached</span>
+                    </button>
                     <?php else: ?>
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-extrabold">+<?php echo $ad['reward']; ?></span>
+                    <button onclick="watchAd_<?php echo $ad['type']; ?>(this)" class="watch-btn-<?php echo $ad['type']; ?> w-full py-3 rounded-xl <?php echo $meta['iconBg']; ?> text-white font-bold text-sm shadow-lg hover:opacity-90 active:scale-[0.97] transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i>
+                        <span>Watch Ad</span>
+                    </button>
                     <?php endif; ?>
                 </div>
-            </button>
+
+                <!-- Status message per card -->
+                <div id="ad-msg-<?php echo $ad['type']; ?>" class="hidden px-5 pb-4 text-xs font-bold text-center"></div>
+            </div>
             <?php endforeach; ?>
         </div>
 
@@ -215,7 +240,7 @@ $adMeta = [
         <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-dark-800/50 border border-gray-200 dark:border-white/5 rounded-2xl">
             <i class="fas fa-circle-info text-gray-400 mt-0.5"></i>
             <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Watch ads completely to earn full rewards. Ads rotate between networks for best availability.
+                Watch each ad completely to earn the full reward. Tap <b>Watch Ad</b> to start.
             </p>
         </div>
     <?php endif; ?>
@@ -242,10 +267,14 @@ function showAdStatus(type, message) {
 }
 
 function creditReward(adType, btnElement, originalHtml) {
+    btnElement.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Crediting...</span>';
     fetch('pages/load_tg_ads.php?reward_ad=1&type=' + adType)
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                btnElement.innerHTML = '<i class="fas fa-check-circle"></i><span>+' + data.reward + ' pts Earned!</span>';
+                btnElement.className = btnElement.className.replace(/from-\S+/g, '').replace(/to-\S+/g, '');
+                btnElement.classList.add('bg-emerald-500', 'cursor-default');
                 showAdStatus('success', '+' + data.reward + ' points added to your balance!');
                 if (window.Telegram && window.Telegram.WebApp) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -287,7 +316,7 @@ function creditReward(adType, btnElement, originalHtml) {
     window.watchAd_monetag = function(btn) {
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"><i class="fas fa-circle-notch fa-spin text-white text-lg"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-900 dark:text-white text-sm">Loading Ad...</h4><p class="text-xs text-gray-500">Please wait</p></div>';
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Loading Ad...</span>';
 
         var showFn = window['show_' + zoneId];
         if (typeof showFn !== 'function') {
@@ -333,7 +362,7 @@ function creditReward(adType, btnElement, originalHtml) {
     window.watchAd_adsgram = function(btn) {
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"><i class="fas fa-circle-notch fa-spin text-white text-lg"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-900 dark:text-white text-sm">Loading Ad...</h4><p class="text-xs text-gray-500">Please wait</p></div>';
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Loading Ad...</span>';
 
         if (typeof window.Adsgram === 'undefined') {
             setTimeout(function() {
@@ -384,7 +413,7 @@ function creditReward(adType, btnElement, originalHtml) {
     window.watchAd_adexora = function(btn) {
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"><i class="fas fa-circle-notch fa-spin text-white text-lg"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-900 dark:text-white text-sm">Loading Ad...</h4><p class="text-xs text-gray-500">Please wait</p></div>';
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Loading Ad...</span>';
 
         if (typeof window.showAdexora !== 'function') {
             setTimeout(function() {
@@ -428,7 +457,7 @@ function creditReward(adType, btnElement, originalHtml) {
     window.watchAd_gigapub = function(btn) {
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"><i class="fas fa-circle-notch fa-spin text-white text-lg"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-900 dark:text-white text-sm">Loading Ad...</h4><p class="text-xs text-gray-500">Please wait</p></div>';
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Loading Ad...</span>';
 
         if (typeof window.showGiga !== 'function') {
             setTimeout(function() {
