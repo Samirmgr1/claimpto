@@ -225,6 +225,9 @@ $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
             <a href="admin_coupon.php" class="admin-nav active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
                 <i class="fas fa-ticket-simple w-5 text-center"></i> Coupon Codes
             </a>
+            <a href="broadcast.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-bullhorn w-5 text-center"></i> Broadcast
+            </a>
 
             <p class="px-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mt-6 mb-2">Configuration</p>
             <a href="settings.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">

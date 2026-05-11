@@ -325,6 +325,9 @@ $site_logo = getSetting('site_logo') ?: '';
             <a href="admin_coupon.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
                 <i class="fas fa-ticket-simple w-5 text-center"></i> Coupon Codes
             </a>
+            <a href="broadcast.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                <i class="fas fa-bullhorn w-5 text-center"></i> Broadcast
+            </a>
             <a href="settings.php" class="admin-nav w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
                 <i class="fas fa-gear w-5 text-center"></i> Settings
             </a>
