@@ -209,6 +209,88 @@ function broadcastLotteryWinner($pdo, $winnerUsername, $ticketNumber, $prize, $w
     return ['sent' => $sent, 'failed' => $failed, 'total' => count($allUsers)];
 }
 
+/**
+ * Auto-draw expired lottery draws and create new ones.
+ * Call this on page loads to ensure draws complete on time without a cron job.
+ */
+function lotteryAutoDraw($pdo) {
+    $now = new DateTime('now', new DateTimeZone('UTC'));
+    $today = $now->format('Y-m-d');
+
+    // Find active draws past their end date
+    $stmt = $pdo->prepare("SELECT * FROM lottery_draws WHERE status = 'active' AND week_end <= ?");
+    $stmt->execute([$today]);
+    $expiredDraws = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($expiredDraws as $draw) {
+        $tickets = $pdo->prepare("SELECT lt.*, u.username, u.telegram_id FROM lottery_tickets lt JOIN users u ON lt.user_id = u.id WHERE lt.draw_id = ?");
+        $tickets->execute([$draw['id']]);
+        $allTickets = $tickets->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($allTickets) === 0) {
+            $pdo->prepare("UPDATE lottery_draws SET status = 'cancelled' WHERE id = ?")->execute([$draw['id']]);
+            continue;
+        }
+
+        $winnerTicket = $allTickets[array_rand($allTickets)];
+        $basePrize = (float)(getSetting('lottery_prize') ?: 0);
+        $poolPrize = (float)($draw['prize_pool'] ?? 0);
+        $prize = $basePrize + $poolPrize;
+
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("UPDATE lottery_draws SET status = 'drawn', winner_user_id = ?, winner_ticket_id = ?, drawn_at = NOW() WHERE id = ?")->execute([$winnerTicket['user_id'], $winnerTicket['id'], $draw['id']]);
+            if ($prize > 0) {
+                $pdo->prepare("UPDATE users SET balance = balance + ? WHERE id = ?")->execute([$prize, $winnerTicket['user_id']]);
+                $trans_id = 'LOTTERY_' . $draw['id'] . '_' . $winnerTicket['user_id'];
+                $pdo->prepare("INSERT INTO completed_offers (user_id, trans_id, offer_name, offer_type, reward, status) VALUES (?, ?, 'Lottery Winner', 'Lottery', ?, 'completed')")->execute([$winnerTicket['user_id'], $trans_id, $prize]);
+            }
+            $pdo->commit();
+
+            // Notify winner via Telegram
+            $botToken = getSetting('telegram_bot_token');
+            if ($botToken && !empty($winnerTicket['telegram_id'])) {
+                $siteName = getSetting('site_name') ?: 'Mini App';
+                $currencyName = getSetting('currency_name') ?: 'Coins';
+                $msg = "🎉🎉🎉 <b>CONGRATULATIONS!</b> 🎉🎉🎉\n\n"
+                     . "🏆 You are the <b>LOTTERY WINNER</b>!\n\n"
+                     . "🎟 Winning Ticket: <b>#" . $winnerTicket['ticket_number'] . "</b>\n"
+                     . "💰 Prize: <b>" . number_format($prize, 2) . " " . htmlspecialchars($currencyName) . "</b>\n"
+                     . "📅 Week: " . $draw['week_start'] . " — " . $draw['week_end'] . "\n\n"
+                     . "Your prize has been added to your balance! 🚀\n\n"
+                     . "— <b>" . $siteName . "</b>";
+                $ch = curl_init("https://api.telegram.org/bot{$botToken}/sendMessage");
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => ['chat_id' => $winnerTicket['telegram_id'], 'text' => $msg, 'parse_mode' => 'HTML'],
+                    CURLOPT_SSL_VERIFYPEER => false
+                ]);
+                curl_exec($ch);
+                curl_close($ch);
+            }
+
+            // Broadcast to all users
+            broadcastLotteryWinner($pdo, $winnerTicket['username'], $winnerTicket['ticket_number'], $prize, $draw['week_start'], $draw['week_end']);
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+        }
+    }
+
+    // Auto-create new draw for current week if none exists
+    $dow = (int)$now->format('N');
+    $weekStart = (clone $now)->modify('-' . ($dow - 1) . ' days')->format('Y-m-d');
+    $weekEnd = (clone $now)->modify('+' . (7 - $dow) . ' days')->format('Y-m-d');
+    $chk = $pdo->prepare("SELECT id FROM lottery_draws WHERE week_start = ? AND status = 'active'");
+    $chk->execute([$weekStart]);
+    if (!$chk->fetchColumn()) {
+        try {
+            $pdo->prepare("INSERT IGNORE INTO lottery_draws (week_start, week_end, status) VALUES (?, ?, 'active')")->execute([$weekStart, $weekEnd]);
+        } catch (Exception $e) {}
+    }
+}
+
 if (!defined('POSTBACK_MODE') && session_status() === PHP_SESSION_NONE) {
     session_start();
 }

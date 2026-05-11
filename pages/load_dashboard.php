@@ -9,6 +9,9 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $currency = getSetting('currency_name') ?: 'Coins';
 
+// Auto-draw any expired lotteries on dashboard load
+try { lotteryAutoDraw($pdo); } catch (Exception $e) {}
+
 function ensureCouponTables($pdo) {
     $pdo->exec("CREATE TABLE IF NOT EXISTS addon_coupons (
         id INT AUTO_INCREMENT PRIMARY KEY,

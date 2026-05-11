@@ -187,6 +187,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_lottery_settings
     $success = "Lottery settings saved successfully!";
 }
 
+// Auto-draw any expired lotteries
+lotteryAutoDraw($pdo);
+
 // Ensure current week draw exists
 $now = new DateTime('now', new DateTimeZone('UTC'));
 $dow = (int)$now->format('N'); // 1=Mon, 7=Sun

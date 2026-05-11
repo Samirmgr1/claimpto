@@ -32,6 +32,10 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS lottery_tickets (
     INDEX idx_user_draw (user_id, draw_id)
 )");
 
+// Auto-draw any expired lotteries and create new draw
+require_once '../core/functions.php';
+lotteryAutoDraw($pdo);
+
 $lottery_status = getSetting('lottery_status');
 $lottery_enabled = ($lottery_status === '0') ? false : true;
 
